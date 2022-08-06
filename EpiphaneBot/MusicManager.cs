@@ -17,9 +17,11 @@ public class MusicManager
         private set;
     } = "1PivgIF1ZykwHu1pC8a4X5";
 
-    private const string kAccessToken = "Music_AccessToken";
-    private const string kRefreshToken = "Music_RefreshToken";
-    private const string kExpirationTime = "Music_ExpirationTime";
+    private const string kAccessToken = "AccessToken";
+    private const string kRefreshToken = "RefreshToken";
+    private const string kExpirationTime = "ExpirationTime";
+    private const string kClientId = "ClientId";
+    private const string kClientSecret = "ClientSecret";
     private const string kComputerName = "Thomas-PC";
     private const int kAppCommand = 0x0319;
 
@@ -35,33 +37,23 @@ public class MusicManager
         CMD_NEXT = 720896,
     };
 
-    [DllImport("user32.dll")]
-    public static extern int SendMessage(IntPtr hWnd, int wMsg, IntPtr wParam, IntPtr lParam);
-
-    private IntPtr SpotifyWindow = IntPtr.Zero;
-
     // Inputs
-    private IInlineInvokeProxy CPH;
-    private SettingsManager _settingsManager;
-    private ExternalManager _externalManager;
+    private readonly IInlineInvokeProxy CPH;
+    private readonly SettingsManager.Scope settings;
 
     // API Client
     private SpotifyClient Spotify;
     private DateTime ExpirationTime;
 
-    public MusicManager(IInlineInvokeProxy CPH, SettingsManager settingsManager, ExternalManager externalManager)
+    public MusicManager(IInlineInvokeProxy CPH, SettingsManager.Scope settings)
     {
         this.CPH = CPH;
-        _settingsManager = settingsManager;
-        _externalManager = externalManager;
+        this.settings = settings;
 
-        _externalManager.OnProcessState("Spotify.exe", OnSpotify);
-        SpotifyWindow = GetSpotifyWindow();
-
-        if (_settingsManager.Has(kAccessToken) && _settingsManager.Has(kExpirationTime))
+        if (settings.Has(kAccessToken) && settings.Has(kExpirationTime))
         {
-            Spotify = new SpotifyClient((string)_settingsManager[kAccessToken]);
-            ExpirationTime = new DateTime((long)_settingsManager[kExpirationTime]);
+            Spotify = new SpotifyClient((string)settings[kAccessToken]);
+            ExpirationTime = new DateTime((long)settings[kExpirationTime]);
             CheckToken();
         }
         else
@@ -73,7 +65,6 @@ public class MusicManager
 
     ~MusicManager()
     {
-        _externalManager.OffProcessState("Spotify.exe", OnSpotify);
     }
 
     private void CheckToken()
@@ -88,15 +79,15 @@ public class MusicManager
 
     private void RefreshToken(string reason)
     {
-        CPH.LogDebug($"{reason}, refreshing token...");
+        CPH.LogInfo($"{reason}, refreshing token...");
         var newResponse = new OAuthClient().RequestToken(
-            new AuthorizationCodeRefreshRequest("2b77d444e13e48cfb2effe8143831ae6", "f92bd400e91745f6a27ead8d4df3376e", (string)_settingsManager["Music_RefreshToken"])
+            new AuthorizationCodeRefreshRequest((string)settings[kClientId], (string)settings[kClientSecret], (string)settings[kRefreshToken])
         ).Result;
 
         ExpirationTime = newResponse.CreatedAt.AddSeconds(newResponse.ExpiresIn);
         Spotify = new SpotifyClient(newResponse.AccessToken);
-        _settingsManager["Music_AccessToken"] = newResponse.AccessToken;
-        _settingsManager["Music_Expiration"] = ExpirationTime.Ticks;
+        settings[kAccessToken] = newResponse.AccessToken;
+        settings[kExpirationTime] = ExpirationTime.Ticks;
     }
 
     public FullTrack CurrentlyPlaying
@@ -155,12 +146,10 @@ public class MusicManager
     {
         // Confirm we're holding onto the right spotify window
         CPH.LogDebug("Spotify process state updated, refreshing window handle");
-        SpotifyWindow = GetSpotifyWindow();
     }
 
     private void SendCommand(Command command)
     {
-        SendMessage(SpotifyWindow, kAppCommand, IntPtr.Zero, (IntPtr)command);
     }
 
     public Device PrimaryDevice

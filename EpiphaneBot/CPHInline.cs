@@ -20,7 +20,7 @@ public partial class CPHInline
     {
         if (_settingsManager == null)
         {
-            _settingsManager = new SettingsManager();
+            _settingsManager = new SettingsManager(CPH);
         }
 
         if (_eventManager == null)
@@ -55,7 +55,7 @@ public partial class CPHInline
 
         if (_musicManager == null)
         {
-            _musicManager = new MusicManager(CPH, _settingsManager, _externalManager);
+            _musicManager = new MusicManager(CPH, _settingsManager["Music"]);
         }
     }
 
@@ -256,10 +256,10 @@ public partial class CPHInline
         }
 
         CPH.LogDebug($"Voting {vote} on {track.Name}");
-        //{"AccessToken":"BQArroV4I4pTLSWUJJUpB6KL4cafRrqb5Z-bPATlpQaxFGSOnpeIrsZ60WWWHxcyhR4cQGvB63cVDgAURkIBZe4DJVjkjJ4bqDi1LyTYewTLAmzKdMfaNDOr8eh3XsrZ48iax5CO_VzqXiHlapCzAweMMpCcLnF1jZuxUa50SxoxGZmpUctN13vhXsbDQHTi9g_Mvf1FFL93CvKUvwXGxeNRrZpG8Q4ec7emjtSBylScHDBb_X7f5nNYA0hf18RI1gUDV439BgGJkJD-9ahZM8vTDSWILiPUk1hQWapwclsn0vMQwu4g_vF02eS1rY0h","RefreshToken":"AQBjXx1E0vPpc_VhBoyRRDXoUlMKLr2hQgoDMIcdIJnRWyH63uH9YEZ5F6poPm6ccnYQyjZOzNzazCT8FhzJZXvFYflD578r-xbE4YZV9oNmcYSt093oGPh7kD8UrA4HLRo"}
-        string key = $"Music_Score_{track.Name}";
-        Int64 currentScore = (_settingsManager[key] is Int64) ? (Int64)_settingsManager[key] : 0;
-        _settingsManager[key] = currentScore + vote;
+        SettingsManager.Scope scores = _settingsManager["MusicScores"];
+        string key = $"{track.Name}";
+        Int64 currentScore = (scores[key] is Int64) ? (Int64)scores[key] : 0;
+        scores[key] = currentScore + vote;
 
         switch (vote)
         {
