@@ -11,7 +11,7 @@ using Settings = System.Collections.Generic.Dictionary<string, object>;
 
 public class SettingsManager
 {
-    private const string SettingsPath = "C:/Users/Thomas/AppData/Local/EpiphaneBot";
+    public const string SettingsPath = "C:/Users/Thomas/AppData/Local/EpiphaneBot";
 
     public class Scope
     {

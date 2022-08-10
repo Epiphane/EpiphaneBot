@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ActionExecutor": {
+      "commandName": "Project",
+      "commandLineArgs": "Test"
+    }
+  }
+}

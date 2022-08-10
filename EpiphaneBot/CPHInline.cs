@@ -7,55 +7,55 @@ using System.Threading.Tasks;
 
 public partial class CPHInline
 {
-    private SettingsManager _settingsManager;
-    private EventManager _eventManager;
-    private SceneManager _sceneManager;
-    private ExternalManager _externalManager;
-    private TwitchManager _twitchManager;
-    private RPGManager _rpgManager;
-    private MusicManager _musicManager;
-    private StreamManager _streamManager;
+    private SettingsManager settingsManager;
+    private EventManager eventManager;
+    private SceneManager sceneManager;
+    private ExternalManager externalManager;
+    private TwitchManager twitchManager;
+    private RPGManager rpgManager;
+    private MusicManager musicManager;
+    private StreamManager streamManager;
 
     public void Init()
     {
-        if (_settingsManager == null)
+        if (settingsManager == null)
         {
-            _settingsManager = new SettingsManager(CPH);
+            settingsManager = new SettingsManager(CPH);
         }
 
-        if (_eventManager == null)
+        if (eventManager == null)
         {
-            _eventManager = new EventManager(CPH);
+            eventManager = new EventManager(CPH);
         }
 
-        if (_externalManager == null)
+        if (externalManager == null)
         {
-            _externalManager = new ExternalManager(CPH);
+            externalManager = new ExternalManager(CPH);
         }
 
-        if (_sceneManager == null)
+        if (sceneManager == null)
         {
-            _sceneManager = new SceneManager(CPH, _externalManager);
+            sceneManager = new SceneManager(CPH, externalManager);
         }
 
-        if (_twitchManager == null)
+        if (twitchManager == null)
         {
-            _twitchManager = new TwitchManager();
+            twitchManager = new TwitchManager();
         }
 
-        if (_streamManager == null)
+        if (streamManager == null)
         {
-            _streamManager = new StreamManager(CPH);
+            streamManager = new StreamManager(CPH);
         }
 
-        if (_rpgManager == null)
+        if (rpgManager == null)
         {
-            _rpgManager = new RPGManager(CPH);
+            rpgManager = new RPGManager(CPH);
         }
 
-        if (_musicManager == null)
+        if (musicManager == null)
         {
-            _musicManager = new MusicManager(CPH, _settingsManager["Music"]);
+            musicManager = new MusicManager(CPH, settingsManager["Music"], settingsManager["MusicScores"]);
         }
     }
 
@@ -74,7 +74,7 @@ public partial class CPHInline
         PrintArgs();
         string user = args["user"].ToString();
 
-        _eventManager.OnFollow(user);
+        eventManager.OnFollow(user);
 
         return true;
     }
@@ -84,7 +84,7 @@ public partial class CPHInline
         PrintArgs();
         string user = args["user"].ToString();
 
-        _eventManager.OnSubscribe(user);
+        eventManager.OnSubscribe(user);
 
         return true;
     }
@@ -99,31 +99,31 @@ public partial class CPHInline
             return false;
         }
 
-        _sceneManager.TransitionToScene(scenum);
+        sceneManager.TransitionToScene(scenum);
         return true;
     }
 
     public bool Show_Browser()
     {
-        _sceneManager.ShowBrowser();
+        sceneManager.ShowBrowser();
         return true;
     }
 
     public bool Hide_Browser()
     {
-        _sceneManager.HideBrowser();
+        sceneManager.HideBrowser();
         return true;
     }
 
     public bool Show_Timer()
     {
-        _sceneManager.ShowTimer();
+        sceneManager.ShowTimer();
         return true;
     }
 
     public bool Hide_Timer()
     {
-        _sceneManager.HideTimer(false);
+        sceneManager.HideTimer(false);
         return true;
     }
 
@@ -137,19 +137,19 @@ public partial class CPHInline
             return false;
         }
 
-        _sceneManager.SetMusicVisibility(visibility);
+        sceneManager.SetMusicVisibility(visibility);
         return true;
     }
 
     public bool DEBUG_ToggleSimulateChat()
     {
-        _sceneManager.DEBUG_ToggleSimulateChat();
+        sceneManager.DEBUG_ToggleSimulateChat();
         return true;
     }
 
     public bool ResetStreamState()
     {
-        _streamManager.ResetState();
+        streamManager.ResetState();
         return true;
     }
 
@@ -157,21 +157,21 @@ public partial class CPHInline
     {
         int place;
         string user = args["user"].ToString();
-        if (_streamManager.ClaimFirst(user, out place))
+        if (streamManager.ClaimFirst(user, out place))
         {
             List<string> messages = new List<string> { "first", "second", "third" };
             List<string> endings = new List<string> { "2 prizes remaining", "1 prize remaining", "" };
             string message = messages[place];
             CPH.SendMessage($"You did it, {user}! You were {message} to claim the prize today! {endings[place]}");
         }
-        else if (_streamManager.HasClaimed(user))
+        else if (streamManager.HasClaimed(user))
         {
             CPH.SendMessage($"You've already used that today, {user}. Nice try ;)");
         }
         else
         {
-            
-            CPH.SendMessage($"Sorry {user}, you were beaten by {_streamManager.Claimants} today. Better luck next time!");
+
+            CPH.SendMessage($"Sorry {user}, you were beaten by {streamManager.Claimants} today. Better luck next time!");
         }
 
         return true;
@@ -179,39 +179,81 @@ public partial class CPHInline
 
     public bool PlayMusic()
     {
-        FullTrack track = _musicManager.StartPlaylist().GetAwaiter().GetResult();
+        FullTrack track = musicManager.StartPlaylist().GetAwaiter().GetResult();
         CPH.LogDebug($"Now playing: {track.Name}");
         return true;
     }
 
+    private int StreamSequenceId = 0;
+
     public async void StartStreamSequence(bool goLive)
     {
-        FullTrack track = _musicManager.StartPlaylist().GetAwaiter().GetResult();
-        /*
-        _sceneManager.TransitionToScene(SceneManager.FauxScene.Starting);
-        _sceneManager.SetIntroRemainingTime(track);
+        int id = ++StreamSequenceId;
+        FullTrack track = musicManager.StartPlaylist().GetAwaiter().GetResult();
+        sceneManager.TransitionToScene(SceneManager.FauxScene.Starting);
+        sceneManager.SetIntroRemainingTime(track);
+        sceneManager.RefreshChat();
+        rpgManager.DeleteEventsOfType<FirstEvent>();
+        rpgManager.StartEvent((DB, CPH) => new FirstEvent(DB, CPH));
         if (goLive)
         {
             CPH.ObsStartStreaming();
             CPH.ObsStartRecording();
         }
-        await Task.Delay(track.DurationMs - 2000);
-        _sceneManager.TransitionToScene(SceneManager.FauxScene.Speedrunning);
-        */
 
+        await Task.Delay(track.DurationMs - 2000);
+        // Make sure it hasn't happened twice now
+        if (id != StreamSequenceId)
+        {
+            return;
+        }
+
+        sceneManager.TransitionToScene(SceneManager.FauxScene.Speedrunning);
+    }
+
+    public bool SendRPGCommand()
+    {
+        if (!args.ContainsKey("userId"))
+        {
+            CPH.LogWarn("SendRPGCommand called without a userId argument");
+            return false;
+        }
+
+        if (!args.ContainsKey("user"))
+        {
+            CPH.LogWarn("SendRPGCommand called without a user argument");
+            return false;
+        }
+
+        if (!args.ContainsKey("command"))
+        {
+            CPH.LogWarn("SendRPGCommand called without a message argument");
+            return false;
+        }
+
+        long userId = args["userId"] is string ? int.Parse((string)args["userId"]) : (Int64)args["userId"];
+        string user = (string)args["user"];
+        string message = (string)args["command"];
+        return rpgManager.HandleCommand(userId, user, message);
     }
 
     public bool Test()
     {
-        StartStreamSequence(false);
+        PrintArgs();
+        long userId = args["userId"] is string ? int.Parse((string)args["userId"]) : (Int64)args["userId"];
+        rpgManager.AddResources(userId, (string)args["user"], RPGManager.Resource.Wood, 12);
 
         return true;
     }
 
     public bool StartStream()
     {
+        if (CPH.ObsIsStreaming())
+        {
+            return false;
+        }
+
         bool goLive = false;
-        if (args.ContainsKey("goLive"))
         {
             if (args["goLive"] is bool && (bool)args["goLive"] == true)
             {
@@ -225,52 +267,39 @@ public partial class CPHInline
 
     public bool ShowCurrentPlaylist()
     {
-        CPH.SendMessage($"Playlist: https://open.spotify.com/playlist/{_musicManager.Playlist}");
+        CPH.SendMessage($"Playlist: https://open.spotify.com/playlist/{musicManager.Playlist}");
         return true;
     }
 
     public bool ShowCurrentSong()
     {
-        FullTrack track = _musicManager.CurrentlyPlaying;
+        FullTrack track = musicManager.CurrentlyPlaying;
         if (track is null)
         {
             return false;
         }
 
-        CPH.SendMessage($"Currently playing: {track.Name} by {_musicManager.CurrentArtist.Name}");
+        CPH.SendMessage($"Currently playing: {track.Name} by {musicManager.CurrentArtist.Name}");
         return true;
     }
 
     public bool VoteOnSong()
     {
-        Int64 vote = 0;
-        if (args.ContainsKey("vote"))
+        if (!args.ContainsKey("user"))
         {
-            vote = (Int64)args["vote"];
-        }
-
-        FullTrack track = _musicManager.CurrentlyPlaying;
-        if (track is null)
-        {
+            CPH.LogWarn("VoteOnSong called without a user argument");
             return false;
         }
 
-        CPH.LogDebug($"Voting {vote} on {track.Name}");
-        SettingsManager.Scope scores = _settingsManager["MusicScores"];
-        string key = $"{track.Name}";
-        Int64 currentScore = (scores[key] is Int64) ? (Int64)scores[key] : 0;
-        scores[key] = currentScore + vote;
-
-        switch (vote)
+        if (!args.ContainsKey("vote"))
         {
-            case 1:
-                CPH.SendMessage($"Yo, {track.Name} is a BANGER song! Let's gooooo");
-                break;
-            case -1:
-                CPH.SendMessage($"I agree, {track.Name} SUCKS!");
-                break;
+            CPH.LogWarn("VoteOnSong called without a vote argument");
+            return false;
         }
 
-        return true;
+        Int64 vote = (Int64)args["vote"];
+        string user = (string)args["user"];
+
+        return musicManager.VoteOnSong(user, vote);
     }
 }

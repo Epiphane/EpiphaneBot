@@ -11,47 +11,51 @@ using Streamer.bot.Plugin.Interface;
 
 public class MusicManager
 {
-    public string Playlist
-    {
-        get;
-        private set;
-    } = "1PivgIF1ZykwHu1pC8a4X5";
-
+    public string Playlist { get; private set; } = "1PivgIF1ZykwHu1pC8a4X5";
     private const string kAccessToken = "AccessToken";
     private const string kRefreshToken = "RefreshToken";
     private const string kExpirationTime = "ExpirationTime";
     private const string kClientId = "ClientId";
     private const string kClientSecret = "ClientSecret";
     private const string kComputerName = "Thomas-PC";
-    private const int kAppCommand = 0x0319;
-
-    public enum Command
-    {
-        CMD_NONE = 0,
-        CMD_PLAYPAUSE = 917504,
-        CMD_MUTE = 524288,
-        CMD_VOLUMEDOWN = 589824,
-        CMD_VOLUMEUP = 655360,
-        CMD_STOP = 851968,
-        CMD_PREVIOUS = 786432,
-        CMD_NEXT = 720896,
-    };
 
     // Inputs
     private readonly IInlineInvokeProxy CPH;
     private readonly SettingsManager.Scope settings;
+    private readonly SettingsManager.Scope scores;
 
     // API Client
-    private SpotifyClient Spotify;
+    private SpotifyClient _Spotify;
+    private SpotifyClient Spotify {
+        get
+        {
+            CheckToken();
+            return _Spotify;
+        }
+        set => _Spotify = value;
+    }
     private DateTime ExpirationTime;
 
-    public MusicManager(IInlineInvokeProxy CPH, SettingsManager.Scope settings)
+    [Serializable]
+    private class SongEntry
+    {
+        public string Name;
+        public string Artist;
+        public int Score = 0;
+        public HashSet<string> Upvotes;
+        public HashSet<string> Downvotes;
+    }
+
+    public MusicManager(IInlineInvokeProxy CPH, SettingsManager.Scope settings, SettingsManager.Scope scores)
     {
         this.CPH = CPH;
         this.settings = settings;
+        this.scores = scores;
 
+        CPH.LogInfo("Checking access token");
         if (settings.Has(kAccessToken) && settings.Has(kExpirationTime))
         {
+            CPH.LogInfo("Is good");
             Spotify = new SpotifyClient((string)settings[kAccessToken]);
             ExpirationTime = new DateTime((long)settings[kExpirationTime]);
             CheckToken();
@@ -61,10 +65,6 @@ public class MusicManager
             RefreshToken("No access token found");
         }
 
-    }
-
-    ~MusicManager()
-    {
     }
 
     private void CheckToken()
@@ -128,35 +128,12 @@ public class MusicManager
         }
     }
 
-    private IntPtr GetSpotifyWindow()
-    {
-        Process[] processes = Process.GetProcessesByName("Spotify");
-        foreach (Process p in processes)
-        {
-            if (p.MainWindowHandle != IntPtr.Zero)
-            {
-                return p.MainWindowHandle;
-            }
-        }
-
-        return IntPtr.Zero;
-    }
-
-    private void OnSpotify(string processName, bool running)
-    {
-        // Confirm we're holding onto the right spotify window
-        CPH.LogDebug("Spotify process state updated, refreshing window handle");
-    }
-
-    private void SendCommand(Command command)
-    {
-    }
-
     public Device PrimaryDevice
     {
         get
         {
             DeviceResponse devices = Spotify.Player.GetAvailableDevices().Result;
+            CPH.LogInfo($"ND: {devices.Devices.Count}");
             if (devices == null || devices.Devices == null || devices.Devices.Count == 0)
             {
                 return null;
@@ -174,13 +151,18 @@ public class MusicManager
 
     public async Task<FullTrack> StartPlaylist(int? offset = null)
     {
+        CPH.LogInfo("a3");
         Device primary = PrimaryDevice;
+        CPH.LogInfo($"Primary: {primary}");
         await Spotify.Player.SetShuffle(new PlayerShuffleRequest(true) { DeviceId = primary.Id });
+        CPH.LogInfo("a4");
         Paging<PlaylistTrack<IPlayableItem>> tracks = await Spotify.Playlists.GetItems(Playlist);
+        CPH.LogInfo("a5");
         if (offset == null)
         {
             offset = new Random().Next(tracks.Total ?? 0);
         }
+        CPH.LogInfo("a");
         await Spotify.Player.ResumePlayback(new PlayerResumePlaybackRequest()
         {
             DeviceId = primary.Id,
@@ -190,11 +172,13 @@ public class MusicManager
             },
             ContextUri = $"spotify:playlist:{Playlist}"
         });
+        CPH.LogInfo("a2");
         Paging<PlaylistTrack<IPlayableItem>> nextSong = await Spotify.Playlists.GetItems(Playlist, new PlaylistGetItemsRequest()
         {
             Offset = offset,
             Limit = 1,
         });
+        CPH.LogInfo("a!");
         return (FullTrack)nextSong.Items.First().Track;
     }
 
@@ -208,28 +192,52 @@ public class MusicManager
         Spotify.Player.PausePlayback();
     }
 
-    public void Previous()
+    public bool VoteOnSong(string user, long vote)
     {
-        SendCommand(Command.CMD_PREVIOUS);
-    }
 
-    public void Next()
-    {
-        SendCommand(Command.CMD_NEXT);
-    }
+        FullTrack track = CurrentlyPlaying;
+        SimpleArtist artist = CurrentArtist;
+        if (track is null || artist is null)
+        {
+            return false;
+        }
 
-    public void Mute()
-    {
-        SendCommand(Command.CMD_MUTE);
-    }
+        CPH.LogDebug($"Voting {vote} on {track.Name}");
+        if (scores[track.Id] is null)
+        {
+            scores[track.Id] = new SongEntry()
+            {
+                Name = track.Name,
+                Artist = artist.Name,
+                Upvotes = new HashSet<string>(),
+                Downvotes = new HashSet<string>()
+            };
+        }
+        SongEntry entry = (SongEntry)scores[track.Id];
+        if (vote > 0)
+        {
+            entry.Upvotes.Add(user);
+            entry.Downvotes.Remove(user);
+        }
+        else
+        {
+            entry.Upvotes.Remove(user);
+            entry.Downvotes.Add(user);
+        }
 
-    public void VolumeDown()
-    {
-        SendCommand(Command.CMD_VOLUMEDOWN);
-    }
+        entry.Score = entry.Upvotes.Count - entry.Downvotes.Count;
+        scores[track.Id] = entry;
 
-    public void VolumeUp()
-    {
-        SendCommand(Command.CMD_VOLUMEUP);
+        switch (vote)
+        {
+            case 1:
+                CPH.SendMessage($"Yo, {track.Name} by {entry.Artist} is a BANGER song! Let's gooooo (song score: {entry.Score})");
+                break;
+            case -1:
+                CPH.SendMessage($"I agree, {track.Name} by {entry.Artist} SUCKS! (song score: {entry.Score})");
+                break;
+        }
+
+        return true;
     }
 }

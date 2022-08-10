@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Management;
 using System.Diagnostics;
 using Streamer.bot.Plugin.Interface;
@@ -11,8 +8,8 @@ public class ExternalManager
 {
     public delegate void ProcessStateHandler(string processName, bool running);
 
-    private IInlineInvokeProxy CPH;
-    private Dictionary<string, List<ProcessStateHandler>> processListeners = new Dictionary<string, List<ProcessStateHandler>>();
+    private readonly IInlineInvokeProxy CPH;
+    private readonly Dictionary<string, List<ProcessStateHandler>> processListeners = new Dictionary<string, List<ProcessStateHandler>>();
 
     public ExternalManager(IInlineInvokeProxy CPH)
     {
