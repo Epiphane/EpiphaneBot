@@ -9,6 +9,41 @@ using Streamer.bot.Plugin.Interface;
 
 using Settings = System.Collections.Generic.Dictionary<string, object>;
 
+public class Setting<T>
+{
+    private readonly SettingsManager manager;
+    private readonly Settings settings;
+    private readonly string key;
+    private readonly T defaultValue;
+
+    public Setting(SettingsManager manager, Settings settings, string key, T defaultValue = default)
+    {
+        this.manager = manager;
+        this.settings = settings;
+        this.key = key;
+        this.defaultValue = defaultValue;
+
+        if (!settings.ContainsKey(key))
+        {
+            settings[key] = defaultValue;
+            manager.PersistSettings();
+        }
+    }
+
+    public static implicit operator T(Setting<T> s) => s.Get();
+
+    public T Get()
+    {
+        return (T)(settings.ContainsKey(key) ? settings[key] : defaultValue);
+    }
+
+    public void Set(T value)
+    {
+        settings[key] = value;
+        manager.PersistSettings();
+    }
+}
+
 public class SettingsManager
 {
     public const string SettingsPath = "C:/Users/Thomas/AppData/Local/EpiphaneBot";
@@ -22,6 +57,8 @@ public class SettingsManager
         }
 
         private readonly SettingsManager manager;
+
+        private readonly Dictionary<string, Scope> scopes = new Dictionary<string, Scope>();
         private readonly Settings settings;
 
         public string Serialized
@@ -30,6 +67,22 @@ public class SettingsManager
             {
                 return JsonConvert.SerializeObject(settings, Formatting.Indented);
             }
+        }
+
+        public override string ToString()
+        {
+            return Serialized;
+        }
+
+        public T Get<T>(string key, T defaultValue = default)
+        {
+            object value = GetValue(key);
+            if (value == null)
+            {
+                return defaultValue;
+            }
+
+            return (T)value;
         }
 
         public object GetValue(string key)
@@ -54,25 +107,63 @@ public class SettingsManager
             return settings.ContainsKey(key);
         }
 
+        public Setting<T> At<T>(string key, T defaultValue = default)
+        {
+            return new Setting<T>(manager, settings, key, defaultValue);
+        }
+
         public object this[string key]
         {
             get => GetValue(key);
             set => SetValue(key, value);
         }
+
+        public Scope GetScope(string name, bool replace = true)
+        {
+            if (!settings.ContainsKey(name) || (replace && !(settings[name] is Settings)))
+            {
+                settings[name] = new Settings();
+                manager.PersistSettings();
+            }
+
+            if (!(settings[name] is Settings))
+            {
+                throw new Exception($"Setting {name} is not a scope!");
+            }
+
+            if (!scopes.ContainsKey(name))
+            {
+                scopes[name] = new Scope(manager, (Settings)settings[name]);
+            }
+
+            return scopes[name];
+        }
     }
 
-    private string path = Path.Combine(SettingsPath, "Settings.json");
+    private string FilePath;
+    public const string InMemory = ":memory:";
+    public string PersistedSettings = "";
+    public bool IsMemoryLocal
+    {
+        get { return FilePath == InMemory; }
+    }
 
     // Inputs
-    private IInlineInvokeProxy CPH;
+    private readonly IInlineInvokeProxy CPH;
 
-    private Dictionary<string, Scope> scopes = new Dictionary<string, Scope>();
+    private readonly Dictionary<string, Scope> scopes = new Dictionary<string, Scope>();
     private Dictionary<string, Settings> fullSettings = new Dictionary<string, Settings>();
 
-    public SettingsManager(IInlineInvokeProxy CPH)
+    public SettingsManager(IInlineInvokeProxy CPH, string filePath = null)
     {
         this.CPH = CPH;
 
+        if (filePath == null)
+        {
+            filePath = Path.Combine(SettingsPath, "Settings.json");
+        }
+
+        FilePath = filePath;
         LoadSettings();
     }
 
@@ -88,15 +179,20 @@ public class SettingsManager
         errorArgs.ErrorContext.Handled = true;
     }
 
-    private void LoadSettings()
+    public void LoadSettings()
     {
-        CPH.LogDebug("Reloading settings");
-        if (!File.Exists(path))
+        if (IsMemoryLocal)
         {
             return;
         }
 
-        using (StreamReader file = File.OpenText(path))
+        CPH.LogDebug("Reloading settings");
+        if (!File.Exists(FilePath))
+        {
+            return;
+        }
+
+        using (StreamReader file = File.OpenText(FilePath))
         {
             JsonSerializer serializer = new JsonSerializer();
             serializer.Error += HandleDeserializationError;
@@ -110,10 +206,16 @@ public class SettingsManager
 
     }
 
-    private void PersistSettings(int retries = 2)
+    public void PersistSettings(int retries = 2)
     {
+        if (IsMemoryLocal)
+        {
+            PersistedSettings = JsonConvert.SerializeObject(fullSettings, Formatting.Indented);
+            return;
+        }
+
         CPH.LogDebug("Persisting settings to disk");
-        using (StreamWriter file = File.CreateText(path))
+        using (StreamWriter file = File.CreateText(FilePath))
         {
             file.Write(JsonConvert.SerializeObject(fullSettings, Formatting.Indented));
         }

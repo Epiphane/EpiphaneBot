@@ -9,29 +9,29 @@ public class FirstEvent : RPGEvent
 {
     private const int firstsAvailable = 3;
     private List<User> claimants = new List<User>();
+    private bool real;
 
-    public FirstEvent(PetaPoco.IDatabase DB, IInlineInvokeProxy CPH) : base(DB, CPH)
+    public FirstEvent(PetaPoco.IDatabase DB, IInlineInvokeProxy CPH, bool real) : base(DB, CPH)
     {
-        
-    }
-
-    public override void Start()
-    {
+        this.real = real;
     }
 
     private int CalculateReward(int place)
     {
+        if (!real)
+        {
+            return 0;
+        }
+
         List<int> rewards = new List<int> { 15, 10, 5 };
         return rewards[place];
     }
 
-    public override bool Handle(User user, string message)
-    {
-        if (!message.StartsWith("!first"))
-        {
-            return false;
-        }
+    public override bool IsDone { get { return false; } }
+    public override void Run() { /* Nothing to do */ }
 
+    public override bool Handle(User user, string[] message)
+    {
         if (ClaimFirst(user, out int place))
         {
             int reward = CalculateReward(place);
@@ -39,14 +39,14 @@ public class FirstEvent : RPGEvent
             List<string> endings = new List<string> { "2 prizes remaining", "1 prize remaining", "" };
             string placeStr = messages[place];
 
-            user.Gold += reward;
+            user.Caterium += reward;
             DB.Save(user);
 
-            CPH.SendMessage($"You did it, {user.Name}! You were {placeStr} to claim the prize today and found {reward} gold! {endings[place]}");
+            CPH.SendMessage($"You did it, {user.Name}! You were {placeStr} to claim the prize today and found {reward} caterium! {endings[place]}");
         }
         else if (HasClaimed(user))
         {
-            CPH.SendMessage($"You've already used that today, {user.Name}. Nice try ;)");
+            CPH.SendMessage($"You've already done that today, {user.Name}. Nice try ;)");
         }
         else
         {

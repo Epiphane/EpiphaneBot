@@ -1,9 +1,24 @@
 ﻿using System;
 using Streamer.bot.Plugin.Interface;
 using SpotifyAPI.Web;
+using System.Collections.Generic;
 
 public class SceneManager
 {
+    public enum SceneColor
+    {
+        Blue,
+        Purple,
+        Orange,
+        Green,
+    };
+
+    private const string ChatBoxUrl = 
+        "https://streamlabs.com/widgets/chat-box/v1/72D0E584F339D4D29FA65ECA62FCC7" +
+        "558BC344C09A4A1C40AC10FD4A2A9BABB98106AB74ED2C05F99294EB48C54A7658594665F" +
+        "8850DF3AA0089A091AE4B83E7AA2FF010177C5F639C580350534E25A39A1998F594D2451B" +
+        "A17EDE237A5C4E68C64C8ACE3E2AFFD59833D4B347112B2875B359EC8C5A94CBA8D97646D7";
+
     private IInlineInvokeProxy CPH;
     private ExternalManager _externalManager;
 
@@ -137,7 +152,29 @@ public class SceneManager
 
     public void RefreshChat()
     {
-        CPH.ObsSetBrowserSource("[SRC] Chat", "Chat", "https://streamlabs.com/widgets/chat-box/v1/72D0E584F339D4D29FA65ECA62FCC7558BC344C09A4A1C40AC10FD4A2A9BABB98106AB74ED2C05F99294EB48C54A7658594665F8850DF3AA0089A091AE4B83E7AA2FF010177C5F639C580350534E25A39A1998F594D2451BA17EDE237A5C4E68C64C8ACE3E2AFFD59833D4B347112B2875B359EC8C5A94CBA8D97646D7");
+        CPH.ObsSetBrowserSource("[SRC] Chat", "Chat", $"{ChatBoxUrl}?{DateTime.Now}");
+    }
+
+    public void SetColor(SceneColor color)
+    {
+        string colorName = Enum.GetName(typeof(SceneColor), color);
+        List<string> ColoredElements = new List<string>() { "[SRC] Backdrop", "[E] Music", "[SRC] Main Content" };
+        foreach (string element in ColoredElements)
+        {
+            CPH.ObsShowFilter(element, $"Turn {colorName}");
+        }
+
+        foreach (string name in Enum.GetNames(typeof(SceneColor)))
+        {
+            if (name == colorName)
+            {
+                CPH.ObsShowFilter($"[E] Backdrop {name}", $"Fade In");
+            }
+            else
+            {
+                CPH.ObsShowFilter($"[E] Backdrop {name}", $"Fade Out");
+            }
+        }
     }
 
     //

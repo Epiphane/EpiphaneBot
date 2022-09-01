@@ -13,67 +13,49 @@ using PetaPoco;
 using PetaPoco.Providers;
 using System.Collections.Generic;
 
-namespace Sandbox
+class Program
 {
-    internal class Program
+    private Dictionary<string, object> args = new Dictionary<string, object>();
+
+    private T GetArg<T>(string name)
     {
-        [Serializable]
-        public struct Settings
+        if (!args.ContainsKey(name))
         {
-            public string AccessToken {  get; set; }
-            public string RefreshToken { get; set; }
+            return default(T);
         }
 
-        public async void GetCallback(string code)
+        object value = args[name];
+        if (typeof(T) != typeof(string) && value is string)
         {
-            var response = await new OAuthClient().RequestToken(
-              new AuthorizationCodeTokenRequest("ClientId", "ClientSecret", code, new Uri("http://localhost:5000"))
-            );
-
-            var spotify = new SpotifyClient(response.AccessToken);
-            // Also important for later: response.RefreshToken
-        }
-
-        public static async Task DoMain()
-        {
-            /*
-            Settings settings = new Settings()
+            string str = (string)value;
+            if (typeof(T) == typeof(int))
             {
-                AccessToken = "",
-                RefreshToken = "yello"
-            };
-
-            using FileStream createStream = File.Create("C:/Users/Thomas/AppData/Local/EpiphaneBot/Settings.json");
-            await JsonSerializer.SerializeAsync(createStream, settings);
-            */
-        }
-
-
-        private class User
-        {
-            public long Id { get; set; }
-            public string Name { get; set; }
-            public int Experience { get; set; }
-            public int Wood { get; set; }
-            public int Stone { get; set; }
-            public int Iron { get; set; }
-            public int Rubies { get; set; }
-        }
-
-        static void Main(string[] args)
-        {
-            Stack<string> stack = new Stack<string>();
-
-            stack.Push("1");
-            stack.Push("2");
-            stack.Push("3");
-
-            Console.WriteLine(stack.Peek());
-
-            foreach(string s in stack)
+                return (T)(object)int.Parse(str);
+            }
+            if (typeof(T) == typeof(long))
             {
-                Console.WriteLine(s);
+                return (T)(object)long.Parse(str);
             }
         }
+
+        return (T)value;
+    }
+
+    void Run()
+    {
+        args["n64"] = (long)10;
+        args["n32"] = (int)11;
+        args["str"] = "string";
+        args["num"] = "12";
+
+        long n64 = GetArg<long>("n64");
+        int n32 = GetArg<int>("n32");
+        string str = GetArg<string>("str");
+        long num = GetArg<Int64>("num");
+    }
+
+    static void Main()
+    {
+        new Program().Run();
     }
 }

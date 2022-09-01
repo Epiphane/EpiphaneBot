@@ -2,7 +2,7 @@
   "profiles": {
     "ActionExecutor": {
       "commandName": "Project",
-      "commandLineArgs": "Test"
+      "commandLineArgs": "GetSetting path=RPG"
     }
   }
 }

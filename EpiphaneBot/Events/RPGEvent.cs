@@ -16,6 +16,7 @@ public abstract class RPGEvent
         this.CPH = CPH;
     }
 
-    public abstract void Start();
-    public abstract bool Handle(User user, string message);
+    public abstract bool IsDone { get; }
+    public abstract void Run();
+    public abstract bool Handle(User user, string[] message);
 }

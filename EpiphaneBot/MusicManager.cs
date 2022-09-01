@@ -52,10 +52,8 @@ public class MusicManager
         this.settings = settings;
         this.scores = scores;
 
-        CPH.LogInfo("Checking access token");
         if (settings.Has(kAccessToken) && settings.Has(kExpirationTime))
         {
-            CPH.LogInfo("Is good");
             Spotify = new SpotifyClient((string)settings[kAccessToken]);
             ExpirationTime = new DateTime((long)settings[kExpirationTime]);
             CheckToken();

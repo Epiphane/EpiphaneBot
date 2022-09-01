@@ -9,99 +9,144 @@ using PetaPoco.Providers;
 
 public class RPGManager
 {
-    private readonly string ConnectionString = $@"URI=file:{SettingsManager.SettingsPath}/RPG.db";
-
-    public enum Resource
-    {
-        Wood,
-        Stone,
-        Iron,
-        Rubies,
-        Gold,
-    };
+    private readonly string DefaultConnectionString = $@"URI=file:{SettingsManager.SettingsPath}/RPG.db";
 
     private readonly IInlineInvokeProxy CPH;
+    private readonly SettingsManager.Scope Settings;
     private readonly IDatabase DB;
 
-    private readonly List<RPGEvent> Events = new List<RPGEvent>();
+    private FirstEvent FirstEvent = null;
+    private Adventure RaidEvent = null;
 
-    public RPGManager(IInlineInvokeProxy CPH)
+    public Adventure CurrentRaid
+    {
+        get
+        {
+            if (RaidEvent != null && RaidEvent.IsDone)
+            {
+                RaidEvent = null;
+            }
+
+            return RaidEvent;
+        }
+    }
+
+    [Serializable]
+    struct Dingo
+    {
+        public string name;
+    }
+
+    public RPGManager(IInlineInvokeProxy CPH, SettingsManager.Scope settings, string ConnectionString = null)
     {
         this.CPH = CPH;
+        Settings = settings;
 
         var builder = DatabaseConfiguration.Build()
             .UsingProviderName("sqlite")
             .UsingCommandExecuting(OnExecutingCommand)
-            .UsingConnectionString(ConnectionString);
+            .UsingConnectionString(ConnectionString ?? DefaultConnectionString);
         DB = builder.Create();
 
-        StartEvent((_, _2) => new FirstEvent(DB, CPH));
+        User.CreateTable(DB);
+
+        FirstEvent = new FirstEvent(DB, CPH, false);
     }
 
     public void OnExecutingCommand(object sender, DbCommandEventArgs cmd)
     {
-        CPH.LogInfo(cmd.Command.CommandText);
+        string command = cmd.Command.CommandText;
         foreach (System.Data.SQLite.SQLiteParameter sqlParam in cmd.Command.Parameters)
         {
-            CPH.LogInfo(string.Format("Name: {0}; Value: {1}", sqlParam.ParameterName, sqlParam.Value));
+            command = command.Replace(sqlParam.ParameterName, sqlParam.Value.ToString());
         }
+        CPH.LogInfo($"RPGManager: Running {command}");
     }
 
-    public void AddResources(long userId, string name, Resource resource, int amount)
+    public User GetUser(long userId, string name)
     {
-        CPH.LogDebug($"Adding resources: {userId}, {name}, {resource}, {amount}");
-        User user = User.Get(CPH, DB, userId, name);
-        switch (resource)
+        return User.Get(CPH, DB, userId, name);
+    }
+
+    public void ResetFirstEvent(bool real)
+    {
+        FirstEvent = new FirstEvent(DB, CPH, real);
+    }
+
+    public bool HandleFirstCommand(long userId, string name, string[] message)
+    {
+        if (FirstEvent == null)
         {
-            case Resource.Wood:
-                user.Wood += amount;
-                break;
-            case Resource.Stone:
-                user.Stone += amount;
-                break;
-            case Resource.Iron:
-                user.Iron += amount;
-                break;
-            case Resource.Rubies:
-                user.Rubies += amount;
-                break;
-            case Resource.Gold:
-                user.Gold += amount;
-                break;
-            default:
-                throw new ArgumentException($"Invalid resource: {Enum.GetName(typeof(Resource), resource)}");
+            return false;
         }
 
-        DB.Save(user);
+        return FirstEvent.Handle(GetUser(userId, name), message);
     }
 
-    public bool StartEvent<E>(Func<IDatabase, IInlineInvokeProxy, E> factory) where E : RPGEvent
+    public bool StartRaid(long userId, string name, string[] message)
     {
-        E ev = factory(DB, CPH);
+        if (CurrentRaid != null)
+        {
+            throw new Exception("A raid is already going on!");
+        }
 
-        Events.Add(ev);
-        ev.Start();
-
+        RaidEvent = Adventure.Create(CPH, DB, Settings.GetScope("Raid"), GetUser(userId, name), message);
+        RaidEvent.Run();
         return true;
     }
 
-    public void DeleteEventsOfType<E>() where E : RPGEvent
+    public bool HandleRaidCommand(long userId, string name, string[] message)
     {
-        Events.RemoveAll(e => e is E);
-    }
-
-    public bool HandleCommand(long userId, string name, string message)
-    {
-        User user = User.Get(CPH, DB, userId, name);
-        
-        for (int i = Events.Count - 1; i >= 0; --i)
+        User user = GetUser(userId, name);
+        if (user == null)
         {
-            if (Events[i].Handle(user, message))
-            {
-                return true;
-            }
+            return false;
         }
 
-        return false;
+        if (CurrentRaid == null)
+        {
+            CPH.RunAction("Start Raid", false);
+            return true;
+        }
+
+        return CurrentRaid.Handle(user, message);
+    }
+
+    /*
+    public bool GiveCaterium(long userId, string name, string[] message)
+    {
+        User user = GetUser(userId, name);
+        if (user == null)
+        {
+            return false;
+        }
+
+        if (message.Length < 2)
+        {
+            CPH.SendMessage("Usage: !give <other user> <amount>");
+            return true;
+        }
+
+        string otherPerson = message[0];
+        if (!int.TryParse(message[1], out int amount))
+        {
+            CPH.SendMessage($"Invalid investment: ${message}. Type !raid <number> to start a raid");
+            return false;
+        }
+    }
+    */
+
+    public bool BuyCaterium(long userId, string name, int amount)
+    {
+        User user = GetUser(userId, name);
+        if (user is null)
+        {
+            return false;
+        }
+
+        user.Caterium += amount;
+        DB.Save(user);
+        CPH.SendMessage($"{user}, you now have {user.Caterium} caterium!");
+        return true;
     }
 }

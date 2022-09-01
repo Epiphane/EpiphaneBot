@@ -4,9 +4,12 @@ using System.Diagnostics.Tracing;
 using System.Reflection;
 using SpotifyAPI.Web;
 using System.Threading.Tasks;
+using System.Threading;
 
 public partial class CPHInline
 {
+    private CPHProxy CPHProxy;
+
     private SettingsManager settingsManager;
     private EventManager eventManager;
     private SceneManager sceneManager;
@@ -18,24 +21,32 @@ public partial class CPHInline
 
     public void Init()
     {
+        if (CPHProxy == null)
+        {
+            CPHProxy = new CPHProxy(proxy: CPH)
+            {
+                Live = true
+            };
+        }
+
         if (settingsManager == null)
         {
-            settingsManager = new SettingsManager(CPH);
+            settingsManager = new SettingsManager(CPHProxy);
         }
 
         if (eventManager == null)
         {
-            eventManager = new EventManager(CPH);
+            eventManager = new EventManager(CPHProxy);
         }
 
         if (externalManager == null)
         {
-            externalManager = new ExternalManager(CPH);
+            externalManager = new ExternalManager(CPHProxy);
         }
 
         if (sceneManager == null)
         {
-            sceneManager = new SceneManager(CPH, externalManager);
+            sceneManager = new SceneManager(CPHProxy, externalManager);
         }
 
         if (twitchManager == null)
@@ -45,18 +56,20 @@ public partial class CPHInline
 
         if (streamManager == null)
         {
-            streamManager = new StreamManager(CPH);
+            streamManager = new StreamManager(CPHProxy);
         }
 
         if (rpgManager == null)
         {
-            rpgManager = new RPGManager(CPH);
+            rpgManager = new RPGManager(CPHProxy, settingsManager["RPG"]);
         }
 
         if (musicManager == null)
         {
-            musicManager = new MusicManager(CPH, settingsManager["Music"], settingsManager["MusicScores"]);
+            musicManager = new MusicManager(CPHProxy, settingsManager["Music"], settingsManager["MusicScores"]);
         }
+
+        Show_Timer();
     }
 
     public bool PrintArgs()
@@ -69,6 +82,17 @@ public partial class CPHInline
         return true;
     }
 
+    public bool SetTestingMode()
+    {
+        CPHProxy.Live = GetArg<bool>("live");
+        return true;
+    }
+
+    // *-----------------------------------------+------------------------------------------*
+    // |                                                                                    |
+    // |                                   Stream Events                                    |
+    // |                                                                                    |
+    // *-----------------------------------------+------------------------------------------*
     public bool Action_Follow()
     {
         PrintArgs();
@@ -91,15 +115,68 @@ public partial class CPHInline
 
     public bool Perform_Transition()
     {
+        CPHProxy.LogDebug("Transition!");
         SceneManager.FauxScene scenum;
         string transitionName = args["transitionName"].ToString();
         if (!Enum.TryParse(transitionName, out scenum))
         {
-            CPH.LogWarn($"Transition name not recognized: {transitionName}");
+            CPHProxy.LogWarn($"Transition name not recognized: {transitionName}");
             return false;
         }
 
         sceneManager.TransitionToScene(scenum);
+        return true;
+    }
+
+    // *-----------------------------------------+------------------------------------------*
+    // |                                                                                    |
+    // |                                       Debug                                        |
+    // |                                                                                    |
+    // *-----------------------------------------+------------------------------------------*
+    public bool Test()
+    {
+        SettingsManager.Scope scope = settingsManager.GetScope("Test");
+        Setting<string> val = scope.At("Test1", "Test value");
+        CPHProxy.LogDebug(val);
+
+        return true;
+    }
+
+    public bool TestAsync()
+    {
+        CPHProxy.LogDebug("TestAsync starting");
+        CPHProxy.RunAction("Test", false);
+        CPHProxy.LogDebug("TestAsync ending");
+        return true;
+    }
+
+    public bool DEBUG_ToggleSimulateChat()
+    {
+        sceneManager.DEBUG_ToggleSimulateChat();
+        return true;
+    }
+
+    // *-----------------------------------------+------------------------------------------*
+    // |                                                                                    |
+    // |                                Core Stream Actions                                 |
+    // |                                                                                    |
+    // *-----------------------------------------+------------------------------------------*
+    public bool StartStream()
+    {
+        if (CPHProxy.ObsIsStreaming())
+        {
+            return false;
+        }
+
+        bool goLive = false;
+        {
+            if (args["goLive"] is bool && (bool)args["goLive"] == true)
+            {
+                goLive = true;
+            }
+        }
+        StartStreamSequence(goLive);
+
         return true;
     }
 
@@ -118,12 +195,28 @@ public partial class CPHInline
     public bool Show_Timer()
     {
         sceneManager.ShowTimer();
+        TimerVisible = true;
         return true;
     }
 
     public bool Hide_Timer()
     {
         sceneManager.HideTimer(false);
+        TimerVisible = false;
+        return true;
+    }
+
+    private bool TimerVisible = true;
+    public bool Toggle_Timer()
+    {
+        if (TimerVisible)
+        {
+            Hide_Timer();
+        }
+        else
+        {
+            Show_Timer();
+        }
         return true;
     }
 
@@ -133,7 +226,7 @@ public partial class CPHInline
         string arg = args["visibility"].ToString();
         if (!Enum.TryParse(arg, out visibility))
         {
-            CPH.LogWarn($"Visibility not recognized: {arg}");
+            CPHProxy.LogWarn($"Visibility not recognized: {arg}");
             return false;
         }
 
@@ -141,64 +234,143 @@ public partial class CPHInline
         return true;
     }
 
-    public bool DEBUG_ToggleSimulateChat()
+    public bool SetColor()
     {
-        sceneManager.DEBUG_ToggleSimulateChat();
+        if (Enum.TryParse<SceneManager.SceneColor>(GetArg<string>("color"), out SceneManager.SceneColor color))
+        {
+            sceneManager.SetColor(color);
+            return true;
+        }
+
+        return false;
+    }
+
+    // *-----------------------------------------+------------------------------------------*
+    // |                                                                                    |
+    // |                                      Helpers                                       |
+    // |                                                                                    |
+    // *-----------------------------------------+------------------------------------------*
+    private T GetArg<T>(string name, bool optional = false)
+    {
+        if (!args.ContainsKey(name))
+        {
+            if (optional)
+            {
+                return default;
+            }
+            throw new Exception($"Argument {name} not provided");
+        }
+
+        object value = args[name];
+        if (typeof(T) != typeof(string) && value is string)
+        {
+            string str = (string)value;
+            if (typeof(T) == typeof(int))
+            {
+                return (T)(object)int.Parse(str);
+            }
+            else if (typeof(T) == typeof(long))
+            {
+                return (T)(object)long.Parse(str);
+            }
+            else
+            {
+                if (optional)
+                {
+                    return default;
+                }
+                throw new Exception($"Parsing {typeof(T)} from a string is not supported");
+            }
+        }
+
+        if (!(value is T))
+        {
+            CPHProxy.LogWarn($"Argument {name} ({name.GetType()}) is not of type {typeof(T)}.");
+        }
+
+        return (T)value;
+    }
+
+    private long UserId { get { return GetArg<long>("userId"); } }
+    private string UserName { get { return GetArg<string>("user"); } }
+    private string Command { get { return GetArg<string>("command"); } }
+    private string[] RawInput { get { return (GetArg<string>("rawInput", true) ?? "").Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries); } }
+
+    public bool GetSetting()
+    {
+        string path = GetArg<string>("path");
+        string[] parts = path.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 0)
+        {
+            CPH.LogWarn("Path is empty");
+            return false;
+        }
+
+        SettingsManager.Scope scope = settingsManager.GetScope(parts[0]);
+        for (int i = 1; i < parts.Length - 1; i++)
+        {
+            scope = scope.GetScope(parts[i], false);
+        }
+
+        CPH.LogInfo($"Setting {path}: {scope.GetValue(parts[parts.Length - 1])}");
+
         return true;
     }
 
-    public bool ResetStreamState()
+    public bool ModifySetting()
     {
-        streamManager.ResetState();
+        string path = GetArg<string>("path");
+        string value = GetArg<string>("value");
+        string[] parts = path.Split(new[] { '.' }, StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 0)
+        {
+            CPH.LogWarn("Path is empty");
+            return false;
+        }
+
+        SettingsManager.Scope scope = settingsManager.GetScope(parts[0]);
+        for (int i = 1; i < parts.Length - 1; i++)
+        {
+            scope = scope.GetScope(parts[i], false);
+        }
+
+        scope.SetValue(parts[parts.Length - 1], value);
+
         return true;
     }
 
-    public bool ClaimFirst()
+    public bool ReloadSettings()
     {
-        int place;
-        string user = args["user"].ToString();
-        if (streamManager.ClaimFirst(user, out place))
-        {
-            List<string> messages = new List<string> { "first", "second", "third" };
-            List<string> endings = new List<string> { "2 prizes remaining", "1 prize remaining", "" };
-            string message = messages[place];
-            CPH.SendMessage($"You did it, {user}! You were {message} to claim the prize today! {endings[place]}");
-        }
-        else if (streamManager.HasClaimed(user))
-        {
-            CPH.SendMessage($"You've already used that today, {user}. Nice try ;)");
-        }
-        else
-        {
-
-            CPH.SendMessage($"Sorry {user}, you were beaten by {streamManager.Claimants} today. Better luck next time!");
-        }
-
+        settingsManager.LoadSettings();
         return true;
     }
 
     public bool PlayMusic()
     {
         FullTrack track = musicManager.StartPlaylist().GetAwaiter().GetResult();
-        CPH.LogDebug($"Now playing: {track.Name}");
+        CPHProxy.LogDebug($"Now playing: {track.Name}");
         return true;
     }
 
     private int StreamSequenceId = 0;
-
-    public async void StartStreamSequence(bool goLive)
+    public async Task StartStreamSequence(bool goLive)
     {
         int id = ++StreamSequenceId;
+
+        // Start the music
         FullTrack track = musicManager.StartPlaylist().GetAwaiter().GetResult();
+
+        // Go to the "Stream Starting" screen
         sceneManager.TransitionToScene(SceneManager.FauxScene.Starting);
         sceneManager.SetIntroRemainingTime(track);
         sceneManager.RefreshChat();
-        rpgManager.DeleteEventsOfType<FirstEvent>();
-        rpgManager.StartEvent((DB, CPH) => new FirstEvent(DB, CPH));
+        rpgManager.ResetFirstEvent(true);
         if (goLive)
         {
-            CPH.ObsStartStreaming();
-            CPH.ObsStartRecording();
+            CPHProxy.ObsStartStreaming();
+            CPHProxy.ObsStartRecording();
         }
 
         await Task.Delay(track.DurationMs - 2000);
@@ -211,63 +383,69 @@ public partial class CPHInline
         sceneManager.TransitionToScene(SceneManager.FauxScene.Speedrunning);
     }
 
-    public bool SendRPGCommand()
+    // *-----------------------------------------+------------------------------------------*
+    // |                                                                                    |
+    // |                                        RPG                                         |
+    // |                                                                                    |
+    // *-----------------------------------------+------------------------------------------*
+    public bool SendFirstCommand()
     {
-        if (!args.ContainsKey("userId"))
-        {
-            CPH.LogWarn("SendRPGCommand called without a userId argument");
-            return false;
-        }
-
-        if (!args.ContainsKey("user"))
-        {
-            CPH.LogWarn("SendRPGCommand called without a user argument");
-            return false;
-        }
-
-        if (!args.ContainsKey("command"))
-        {
-            CPH.LogWarn("SendRPGCommand called without a message argument");
-            return false;
-        }
-
-        long userId = args["userId"] is string ? int.Parse((string)args["userId"]) : (Int64)args["userId"];
-        string user = (string)args["user"];
-        string message = (string)args["command"];
-        return rpgManager.HandleCommand(userId, user, message);
+        return rpgManager.HandleFirstCommand(UserId, UserName, RawInput);
     }
 
-    public bool Test()
+    public bool StartRaid()
     {
-        PrintArgs();
-        long userId = args["userId"] is string ? int.Parse((string)args["userId"]) : (Int64)args["userId"];
-        rpgManager.AddResources(userId, (string)args["user"], RPGManager.Resource.Wood, 12);
+        if (rpgManager.CurrentRaid is null)
+        {
+            rpgManager.StartRaid(UserId, UserName, RawInput);
+            return true;
+        }
 
+        // Raid already going on
+        return false;
+    }
+
+    public bool SendRaidCommand()
+    {
+        return rpgManager.HandleRaidCommand(UserId, UserName, RawInput);
+    }
+
+    public bool GetGold()
+    {
+        User user = rpgManager.GetUser(UserId, UserName);
+        if (user is null)
+        {
+            return false;
+        }
+
+        CPH.SendMessage($"{user}, you have {user.Caterium} caterium!");
         return true;
     }
 
-    public bool StartStream()
+    /*
+    public bool GiveCaterium()
     {
-        if (CPH.ObsIsStreaming())
-        {
-            return false;
-        }
+    }
+    */
 
-        bool goLive = false;
-        {
-            if (args["goLive"] is bool && (bool)args["goLive"] == true)
-            {
-                goLive = true;
-            }
-        }
-        StartStreamSequence(goLive);
-
-        return true;
+    public bool BuyCaterium()
+    {
+        return rpgManager.BuyCaterium(UserId, UserName, 10);
     }
 
+    public bool BuyLotsOfCaterium()
+    {
+        return rpgManager.BuyCaterium(UserId, UserName, 150);
+    }
+
+    // *-----------------------------------------+------------------------------------------*
+    // |                                                                                    |
+    // |                                       Music                                        |
+    // |                                                                                    |
+    // *-----------------------------------------+------------------------------------------*
     public bool ShowCurrentPlaylist()
     {
-        CPH.SendMessage($"Playlist: https://open.spotify.com/playlist/{musicManager.Playlist}");
+        CPHProxy.SendMessage($"Playlist: https://open.spotify.com/playlist/{musicManager.Playlist}");
         return true;
     }
 
@@ -279,27 +457,12 @@ public partial class CPHInline
             return false;
         }
 
-        CPH.SendMessage($"Currently playing: {track.Name} by {musicManager.CurrentArtist.Name}");
+        CPHProxy.SendMessage($"Currently playing: {track.Name} by {musicManager.CurrentArtist.Name}");
         return true;
     }
 
     public bool VoteOnSong()
     {
-        if (!args.ContainsKey("user"))
-        {
-            CPH.LogWarn("VoteOnSong called without a user argument");
-            return false;
-        }
-
-        if (!args.ContainsKey("vote"))
-        {
-            CPH.LogWarn("VoteOnSong called without a vote argument");
-            return false;
-        }
-
-        Int64 vote = (Int64)args["vote"];
-        string user = (string)args["user"];
-
-        return musicManager.VoteOnSong(user, vote);
+        return musicManager.VoteOnSong(UserName, GetArg<long>("vote"));
     }
 }

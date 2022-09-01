@@ -26,12 +26,19 @@ namespace ActionExecutor
         static void Main(string[] args)
         {
             string action = null;
+            Dictionary<string, object> cmdArgs = new Dictionary<string, object>();
 
             foreach (string arg in args)
             {
                 if (action == null)
                 {
                     action = arg;
+                }
+
+                if (arg.Contains("="))
+                {
+                    string[] parts = arg.Split('=');
+                    cmdArgs[parts[0]] = parts[1];
                 }
             }
             
@@ -45,9 +52,9 @@ namespace ActionExecutor
             httpWebRequest.ContentType = "application/json";
             httpWebRequest.Method = "POST";
 
+            Console.WriteLine(cmdArgs);
             using (StreamWriter streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
             {
-                Dictionary<string, object> cmdArgs = new Dictionary<string, object>();
                 ActionRequest request = new ActionRequest()
                 {
                     action = new Action()

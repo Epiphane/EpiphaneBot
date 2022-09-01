@@ -1,29 +1,21 @@
 ﻿using PetaPoco;
 using Streamer.bot.Plugin.Interface;
+using System;
 
 [PrimaryKey("Id", AutoIncrement = false)]
-public class User
+public class User : IEquatable<User>
 {
     public long Id { get; set; }
     public string Name { get; set; }
-    public int Experience { get; set; } = 0;
-    public int Wood { get; set; } = 0;
-    public int Stone { get; set; } = 0;
-    public int Iron { get; set; } = 0;
-    public int Rubies { get; set; } = 0;
-    public int Gold { get; set; } = 0;
+    public int Caterium { get; set; } = 0;
 
     public static void CreateTable(IDatabase DB)
     {
         DB.Execute(@"CREATE TABLE IF NOT EXISTS [User] (
-            [Id] INTEGER PRIMARY KEY,
+            [Id] INTEGER,
             [Name] TEXT NOT NULL,
-            [Experience] INTEGER DEFAULT 0,
-            [Wood] INTEGER DEFAULT 0,
-            [Stone] INTEGER DEFAULT 0,
-            [Iron] INTEGER DEFAULT 0,
-            [Rubies] INTEGER DEFAULT 0,
-            [Gold] INTEGER DEFAULT 0
+            [Caterium] INTEGER DEFAULT 0,
+            PRIMARY KEY(""Id"")
         )");
     }
 
@@ -34,12 +26,48 @@ public class User
             User newUser = new User()
             {
                 Id = userId,
-                Name = name
+                Name = name,
+                Caterium = 5,
             };
 
             DB.Insert(newUser);
         }
 
         return DB.Single<User>(userId);
+    }
+
+    public override string ToString()
+    {
+        return Name;
+    }
+
+    public bool Equals(User other)
+    {
+        if (ReferenceEquals(other, null)) return false;
+        if (ReferenceEquals(other, this)) return true;
+        return Id == other.Id;
+    }
+
+    public override bool Equals(object obj)
+    {
+        if (ReferenceEquals(null, obj)) return false;
+        if (ReferenceEquals(this, obj)) return true;
+
+        return Equals(obj as User);
+    }
+
+    public override int GetHashCode()
+    {
+        return Name?.GetHashCode() ?? 0;
+    }
+
+    public static bool operator ==(User left, User right)
+    {
+        return Equals(left, right);
+    }
+
+    public static bool operator !=(User left, User right)
+    {
+        return !Equals(left, right);
     }
 }

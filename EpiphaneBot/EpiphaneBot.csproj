@@ -139,6 +139,7 @@
       <HintPath>..\packages\System.Buffers.4.5.1\lib\net461\System.Buffers.dll</HintPath>
     </Reference>
     <Reference Include="System.ComponentModel.Composition" />
+    <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data.SQLite, Version=1.0.116.0, Culture=neutral, PublicKeyToken=db937bc2d44ff139, processorArchitecture=MSIL">
@@ -207,6 +208,7 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="Twitch.Common, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null" />
     <Reference Include="TwitchLib.Api, Version=3.5.2.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\TwitchLib.Api.3.5.2\lib\netstandard2.0\TwitchLib.Api.dll</HintPath>
     </Reference>
@@ -244,10 +246,16 @@
   <ItemGroup>
     <Compile Include="CPHInline.cs" />
     <Compile Include="CPHInterface.cs" />
+    <Compile Include="CPHProxy.cs" />
     <Compile Include="EventManager.cs" />
+    <Compile Include="Events\Adventure\Adventure.cs" />
+    <Compile Include="Events\Adventure\Event\AdventureEvent.cs" />
+    <Compile Include="Events\Adventure\Event\Stinger.cs" />
+    <Compile Include="Events\Adventure\Event\WinEvent.cs" />
     <Compile Include="Events\FirstEvent.cs" />
     <Compile Include="Events\RPGEvent.cs" />
     <Compile Include="ExternalManager.cs" />
+    <Compile Include="Helpers.cs" />
     <Compile Include="MusicManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RPGManager.cs" />
