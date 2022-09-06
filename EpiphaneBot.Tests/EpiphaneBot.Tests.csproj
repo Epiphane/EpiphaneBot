@@ -18,58 +18,57 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EpiphaneBot\EpiphaneBot.csproj" />
+    <Reference Include="SpotifyAPI.Web">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/SpotifyAPI.Web.dll</HintPath>
+    </Reference>
+    <Reference Include="SpotifyAPI.Web.Auth">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/SpotifyAPI.Web.Auth.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.exe</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Auth">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.Auth.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Common">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.HypeRate">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.HypeRate.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Plugin.Interface">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.Plugin.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.PolyPop">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.PolyPop.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Pulsoid">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.Pulsoid.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.TipeeeStream">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.TipeeeStream.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.TreatStream">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.TreatStream.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Website">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Streamer.bot.Website.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.ChatClient">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Twitch.ChatClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.ClientApi">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Twitch.ClientApi.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.Common">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Twitch.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.PubSub">
+      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/Twitch.PubSub.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="SpotifyAPI.Web">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\SpotifyAPI.Web.dll</HintPath>
-    </Reference>
-    <Reference Include="SpotifyAPI.Web.Auth">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\SpotifyAPI.Web.Auth.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.exe</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.Auth">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.Auth.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.Common">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.HypeRate">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.HypeRate.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.Plugin.Interface">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.Plugin.Interface.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.PolyPop">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.PolyPop.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.Pulsoid">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.Pulsoid.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.TipeeeStream">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.TipeeeStream.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.TreatStream">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.TreatStream.dll</HintPath>
-    </Reference>
-    <Reference Include="Streamer.bot.Website">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Streamer.bot.Website.dll</HintPath>
-    </Reference>
-    <Reference Include="Twitch.ChatClient">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Twitch.ChatClient.dll</HintPath>
-    </Reference>
-    <Reference Include="Twitch.ClientApi">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Twitch.ClientApi.dll</HintPath>
-    </Reference>
-    <Reference Include="Twitch.Common">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Twitch.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="Twitch.PubSub">
-      <HintPath>..\..\..\AppData\Local\Streamer.bot\Twitch.PubSub.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\EpiphaneBot\EpiphaneBot.csproj" />
   </ItemGroup>
-
 </Project>

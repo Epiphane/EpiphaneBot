@@ -19,6 +19,11 @@ public class User : IEquatable<User>
         )");
     }
 
+    public static void DeleteTable(IDatabase DB)
+    {
+        DB.Execute(@"DROP TABLE IF EXISTS [User]");
+    }
+
     public static User Get(IInlineInvokeProxy CPH, IDatabase DB, long userId, string name)
     {
         if (!DB.Exists<User>(userId))

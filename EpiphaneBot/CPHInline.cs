@@ -175,7 +175,7 @@ public partial class CPHInline
                 goLive = true;
             }
         }
-        StartStreamSequence(goLive);
+        Task task = StartStreamSequence(goLive);
 
         return true;
     }

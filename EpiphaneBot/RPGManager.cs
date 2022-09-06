@@ -29,12 +29,10 @@ public class RPGManager
 
             return RaidEvent;
         }
-    }
-
-    [Serializable]
-    struct Dingo
-    {
-        public string name;
+        private set
+        {
+            RaidEvent = value;
+        }
     }
 
     public RPGManager(IInlineInvokeProxy CPH, SettingsManager.Scope settings, string ConnectionString = null)
@@ -49,6 +47,7 @@ public class RPGManager
         DB = builder.Create();
 
         User.CreateTable(DB);
+        Adventure.InitEvents(CPH, DB, Settings.GetScope("Raid"));
 
         FirstEvent = new FirstEvent(DB, CPH, false);
     }
@@ -83,7 +82,7 @@ public class RPGManager
         return FirstEvent.Handle(GetUser(userId, name), message);
     }
 
-    public bool StartRaid(long userId, string name, string[] message)
+    public bool InitRaid(long userId, string name, string[] message)
     {
         if (CurrentRaid != null)
         {
@@ -91,7 +90,15 @@ public class RPGManager
         }
 
         RaidEvent = Adventure.Create(CPH, DB, Settings.GetScope("Raid"), GetUser(userId, name), message);
-        RaidEvent.Run();
+        return RaidEvent != null;
+    }
+
+    public bool StartRaid(long userId, string name, string[] message)
+    {
+        if (InitRaid(userId, name, message))
+        {
+            CurrentRaid.Run();
+        }
         return true;
     }
 

@@ -1032,7 +1032,7 @@ public class CPHProxy : IInlineInvokeProxy
 
     public bool TwitchPollCreate(string title, List<string> choices, int duration, int bitsPerVote = 0, int channelPointsPerVote = 0)
     {
-        return Proxy.TwitchPollCreate(title, choices, duration, bitsPerVote, channelPointsPerVote);
+        return Proxy.TwitchPollCreate(title, choices, duration, bitsPerVote);
     }
 
     public void TwitchPollTerminate(string pollId)
@@ -1308,5 +1308,15 @@ public class CPHProxy : IInlineInvokeProxy
     public void WebsocketSend(byte[] data, int connection = 0)
     {
         Proxy.WebsocketSend(data, connection);
+    }
+
+    public bool TwitchPollCreate(string title, List<string> choices, int duration, int channelPointsPerVote = 0)
+    {
+        return Proxy.TwitchPollCreate(title, choices, duration, channelPointsPerVote);
+    }
+
+    public void LumiaSendCommand(string command)
+    {
+        Proxy.LumiaSendCommand(command);
     }
 }

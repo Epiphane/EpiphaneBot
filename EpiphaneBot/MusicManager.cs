@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Runtime.InteropServices;
-using System.Management;
 using System.Diagnostics;
 using SpotifyAPI.Web;
 using Streamer.bot.Plugin.Interface;

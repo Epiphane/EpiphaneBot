@@ -12,7 +12,7 @@ namespace EpiphaneBot.Tests
         {
             public bool Streaming = false;
             public bool Recording = false;
-            public List<string> Messages = new List<string>();
+            public Queue<string> Messages = new Queue<string>();
             public List<string> ActionsRun = new List<string>();
             public List<int> Waits = new List<int>();
         }
@@ -21,7 +21,7 @@ namespace EpiphaneBot.Tests
 
         public class MockState
         {
-            public Func<double> RandomFn = () => new Random().NextDouble();
+            public Func<double> RandomDouble = () => new Random().NextDouble();
         }
 
         public readonly MockState Mock = new MockState();
@@ -46,13 +46,13 @@ namespace EpiphaneBot.Tests
 
         public int Between(int min, int max)
         {
-            double val = Mock.RandomFn();
+            double val = Mock.RandomDouble();
             return (int)Math.Floor(val * (1 + max - min) + min);
         }
 
         public double NextDouble()
         {
-            return Mock.RandomFn();
+            return Mock.RandomDouble();
         }
 
         public int BroadcastUdp(int port, object data)
@@ -703,7 +703,7 @@ namespace EpiphaneBot.Tests
 
         public void SendMessage(string message, bool bot = true)
         {
-            State.Messages.Add(message);
+            State.Messages.Enqueue(message);
         }
 
         public void SendWhisper(string userName, string message)
@@ -1252,6 +1252,16 @@ namespace EpiphaneBot.Tests
         }
 
         public void WebsocketSend(byte[] data, int connection = 0)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool TwitchPollCreate(string title, List<string> choices, int duration, int channelPointsPerVote = 0)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void LumiaSendCommand(string command)
         {
             throw new NotImplementedException();
         }

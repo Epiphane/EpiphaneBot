@@ -16,4 +16,64 @@
     <PackageReference Include="TwitchLib.Api" Version="3.5.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="Streamer.bot.Auth" />
+    <None Remove="Streamer.bot.Common" />
+    <None Remove="Streamer.bot" />
+    <None Remove="Streamer.bot.HypeRate" />
+    <None Remove="Streamer.bot.Plugin.Interface" />
+    <None Remove="Streamer.bot.PolyPop" />
+    <None Remove="Streamer.bot.Pulsoid" />
+    <None Remove="Streamer.bot.TipeeeStream" />
+    <None Remove="Streamer.bot.TreatStream" />
+    <None Remove="Streamer.bot.Website" />
+    <None Remove="Twitch.ChatClient" />
+    <None Remove="Twitch.ClientApi" />
+    <None Remove="Twitch.Common" />
+    <None Remove="Twitch.PubSub" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Streamer.bot.Auth">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.Auth.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Common">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.exe</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.HypeRate">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.HypeRate.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Plugin.Interface">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.Plugin.Interface.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.PolyPop">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.PolyPop.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Pulsoid">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.Pulsoid.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.TipeeeStream">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.TipeeeStream.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.TreatStream">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.TreatStream.dll</HintPath>
+    </Reference>
+    <Reference Include="Streamer.bot.Website">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Streamer.bot.Website.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.ChatClient">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Twitch.ChatClient.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.ClientApi">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Twitch.ClientApi.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.Common">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Twitch.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="Twitch.PubSub">
+      <HintPath>..\..\..\Downloads\Streamer.bot-x64-0.1.12\Twitch.PubSub.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 </Project>

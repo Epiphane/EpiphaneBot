@@ -6,16 +6,16 @@ using System.ComponentModel.DataAnnotations;
 
 public class Adventure : RPGEvent
 {
-    enum State
+    public enum State
     {
-        Unknown,
+        NotStarted,
         Preparing,
         Running,
         Cooldown,
         Done,
     };
 
-    private State state = State.Unknown;
+    public State state { get; private set; } = State.NotStarted;
 
     public enum Region
     {
@@ -109,6 +109,12 @@ public class Adventure : RPGEvent
         CooldownSec = settings.At("CooldownSec", 5 * 60);
 
         RegisterEvents();
+    }
+
+    public static void InitEvents(IInlineInvokeProxy CPH, PetaPoco.IDatabase DB, SettingsManager.Scope settings)
+    {
+        // Create an Adventure, which instantiates all settings and registers events
+        new Adventure(CPH, DB, settings);
     }
 
     private void RegisterEvents()
@@ -206,18 +212,17 @@ public class Adventure : RPGEvent
 
     public override bool IsDone { get { return state == State.Done; } }
 
-    public override void Run()
+    public void Prepare()
     {
-        RegisterEvents();
         state = State.Preparing;
 
         User creator = participants[0].User;
         CPH.SendMessage(CreationMessage.Get().Replace("{user}", creator.Name));
         CPH.Wait(StartDelaySec * 1000);
+    }
 
-        // Start the adventure
-        state = State.Running;
-
+    public Details GenerateDetails()
+    {
         Helpers.Shuffle(CPH, participants);
         Region[] regions = (Region[])Enum.GetValues(typeof(Region));
         Region region = regions[CPH.Between(0, regions.Length - 1)];
@@ -226,6 +231,14 @@ public class Adventure : RPGEvent
             Region = region,
             Participants = participants,
         };
+
+        return details;
+    }
+
+    public void Begin(Details details)
+    {
+        // Start the adventure
+        state = State.Running;
 
         int totalInvestment = 0;
         participants.ForEach(participant =>
@@ -241,6 +254,15 @@ public class Adventure : RPGEvent
         CPH.SendMessage($"With your {totalInvestment} caterium, the group purchases some Paleberries for safety...");
         CPH.SendMessage(RaidStartMessage.Get().Replace("{location}", $"{Enum.GetName(typeof(Region), details.Region)}"));
         CPH.Wait(EventDelaySec * 1000);
+    }
+
+    public override void Run()
+    {
+        RegisterEvents();
+        Prepare();
+
+        Details details = GenerateDetails();
+        Begin(details);
 
         // Calculate Result
         for (details.Progress = 0; details.Progress < participants.Count; details.Progress++)
@@ -268,8 +290,13 @@ public class Adventure : RPGEvent
             }
         }
 
-        totalInvestment = 0;
-        participants.ForEach(participant => totalInvestment += participant.Investment);
+        int totalInvestment = 0;
+        participants.ForEach(participant => 
+        {
+            if (participant.Health > 0) {
+                totalInvestment += participant.Investment;
+            }
+        });
 
         List<string> winnings = new List<string>();
         participants.ForEach(participant =>

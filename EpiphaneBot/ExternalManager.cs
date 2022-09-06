@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Management;
+//using System.Management;
 using System.Diagnostics;
 using Streamer.bot.Plugin.Interface;
 
@@ -23,8 +23,8 @@ public class ExternalManager
         {
             CPH.LogDebug($"Addubg {processName} handler");
             processListeners[processName] = new List<ProcessStateHandler>();
-            WatchForProcessStart(processName);
-            WatchForProcessEnd(processName);
+            //WatchForProcessStart(processName);
+            //WatchForProcessEnd(processName);
         }
 
         CPH.LogDebug($"Adding handler for {processName}");
@@ -54,6 +54,7 @@ public class ExternalManager
         processListeners[processName].Remove(handler);
     }
 
+    /*
     private ManagementEventWatcher WatchForProcessStart(string processName)
     {
         CPH.LogDebug($"Watching for start events on {processName}");
@@ -115,4 +116,5 @@ public class ExternalManager
             processListeners[processName].ForEach(handler => handler(processName, true));
         }
     }
+    */
 }
