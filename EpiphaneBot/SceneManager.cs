@@ -100,7 +100,7 @@ public class SceneManager
 
     public void SetIntroRemainingTime(FullTrack track)
     {
-        int time = 5 * 60 - track.DurationMs / 1000;
+        int time = 5 * 60 - (track.DurationMs / 1000 - 5);
         CPH.ObsSetBrowserSource("[SRC] Starting Soon", "Intro Page", @"file://E:/Stream/starting.html?t=" + time);
     }
 

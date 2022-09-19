@@ -19,9 +19,8 @@ public class Stinger : IAdventureEvent
     public void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope)
     {
         WeightSetting = scope.At("Weight", 1);
-        Multiplier = scope.At("Multiplier", 1.5);
+        Multiplier = scope.At("Multiplier", 1.2);
         AbsoluteDeathChance = scope.At("AbsoluteDeathChance", 0.3);
-        AbsoluteWinChance = scope.At("AbsoluteDeathChance", 0.3);
         AbsoluteWinChance = scope.At("AbsoluteWinChance", 0.3);
         MinWinChance = scope.At("MinWinChance", 0.25);
         MaxWinChance = scope.At("MaxWinChance", 0.75);
@@ -39,7 +38,7 @@ public class Stinger : IAdventureEvent
 
     private void Lose(Adventure.Details details, Adventure.Participant victim)
     {
-        details.Winnings += victim.Investment;
+        details.Winnings += (int)Math.Round(Multiplier * details.AverageInvestment);
         victim.Health = 0;
     }
 

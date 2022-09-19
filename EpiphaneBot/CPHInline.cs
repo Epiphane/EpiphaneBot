@@ -395,6 +395,12 @@ public partial class CPHInline
 
     public bool StartRaid()
     {
+        if (!CPH.ObsIsStreaming())
+        {
+            CPH.SendMessage("Nice try, but you can't start a raid off-stream ;)");
+            return false;
+        }
+
         if (rpgManager.CurrentRaid is null)
         {
             rpgManager.StartRaid(UserId, UserName, RawInput);

@@ -13,7 +13,7 @@ namespace EpiphaneBot.Tests
         public void SetUp()
         {
             settings = new SettingsManager(this, SettingsManager.InMemory);
-        
+
             // https://docs.microsoft.com/en-us/dotnet/standard/data/sqlite/in-memory-databases
             string ConnectionString = "Data Source=RaidTests;Mode=Memory;Cache=Shared";
 

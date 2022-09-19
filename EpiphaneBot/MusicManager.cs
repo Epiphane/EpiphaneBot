@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Runtime.InteropServices;
-using System.Diagnostics;
 using SpotifyAPI.Web;
 using Streamer.bot.Plugin.Interface;
 
@@ -25,7 +22,8 @@ public class MusicManager
 
     // API Client
     private SpotifyClient _Spotify;
-    private SpotifyClient Spotify {
+    private SpotifyClient Spotify
+    {
         get
         {
             CheckToken();

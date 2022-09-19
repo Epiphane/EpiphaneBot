@@ -29,10 +29,6 @@ public class RPGManager
 
             return RaidEvent;
         }
-        private set
-        {
-            RaidEvent = value;
-        }
     }
 
     public RPGManager(IInlineInvokeProxy CPH, SettingsManager.Scope settings, string ConnectionString = null)

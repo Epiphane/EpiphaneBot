@@ -16,7 +16,7 @@ public class WinEvent : IAdventureEvent
     public void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope)
     {
         WeightSetting = scope.At("Weight", 1);
-        Multiplier = scope.At("Multiplier", 2.25);
+        Multiplier = scope.At("Multiplier", 1.5);
     }
 
     public bool CanRun(Adventure.Details details)

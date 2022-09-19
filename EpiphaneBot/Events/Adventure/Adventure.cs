@@ -19,7 +19,7 @@ public class Adventure : RPGEvent
 
     public enum Region
     {
-        [Display(Name="Northern Forest")]
+        [Display(Name = "Northern Forest")]
         NorthernForest,
 
         [Display(Name = "Spire Coast")]
@@ -74,6 +74,8 @@ public class Adventure : RPGEvent
             return User.Name;
         }
     }
+
+    private DateTime CooldownTime;
 
     private readonly List<Participant> participants = new List<Participant>();
 
@@ -214,6 +216,7 @@ public class Adventure : RPGEvent
 
     public void Prepare()
     {
+        RegisterEvents();
         state = State.Preparing;
 
         User creator = participants[0].User;
@@ -223,6 +226,9 @@ public class Adventure : RPGEvent
 
     public Details GenerateDetails()
     {
+        // Start the adventure
+        state = State.Running;
+
         Helpers.Shuffle(CPH, participants);
         Region[] regions = (Region[])Enum.GetValues(typeof(Region));
         Region region = regions[CPH.Between(0, regions.Length - 1)];
@@ -291,9 +297,10 @@ public class Adventure : RPGEvent
         }
 
         int totalInvestment = 0;
-        participants.ForEach(participant => 
+        participants.ForEach(participant =>
         {
-            if (participant.Health > 0) {
+            if (participant.Health > 0)
+            {
                 totalInvestment += participant.Investment;
             }
         });
@@ -301,9 +308,10 @@ public class Adventure : RPGEvent
         List<string> winnings = new List<string>();
         participants.ForEach(participant =>
         {
-            if (participant.Health > 0) {
+            if (participant.Health > 0)
+            {
                 double claim = (double)participant.Investment / totalInvestment;
-                participant.Winnings = (int)Math.Round(claim * details.Winnings);
+                participant.Winnings = (int)Math.Ceiling(claim * details.Winnings);
                 participant.User.Caterium += participant.Winnings;
                 winnings.Add($"{participant} ({participant.Winnings})");
             }
@@ -327,6 +335,7 @@ public class Adventure : RPGEvent
             CPH.SendMessage($"The adventure is complete! Survivors: {String.Join(", ", winnings)}");
         }
 
+        CooldownTime = DateTime.Now.AddSeconds(CooldownSec);
         state = State.Cooldown;
         CPH.Wait(CooldownSec * 1000);
         CPH.SendMessage(CooldownOverMessage);
@@ -358,6 +367,7 @@ public class Adventure : RPGEvent
         {
             CPH.SendMessage(CooldownMessage.Get()
                 .Replace("{user}", user.Name)
+                .Replace("{cooldown}", CooldownTime.Subtract(DateTime.Now).Seconds.ToString())
                 );
         }
         else
