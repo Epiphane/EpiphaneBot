@@ -55,9 +55,10 @@ public class Adventure : RPGEvent
         public Region Region;
         public List<Participant> Participants;
         public int Progress = 0;
-        public int Winnings = 0;
-        public int MaxInvestment = 0;
-        public int AverageInvestment = 1;
+        public float Winnings = 0;
+        public float MaxInvestment = 0;
+        public float AverageInvestment = 1;
+        public float TotalInvestment = 0;
     }
 
     public class Participant
@@ -77,7 +78,7 @@ public class Adventure : RPGEvent
 
     private DateTime CooldownTime;
 
-    private readonly List<Participant> participants = new List<Participant>();
+    public readonly List<Participant> participants = new List<Participant>();
 
     private readonly Setting<string> CreationMessage;
     private readonly Setting<string> CooldownMessage;
@@ -224,12 +225,16 @@ public class Adventure : RPGEvent
         CPH.Wait(StartDelaySec * 1000);
     }
 
-    public Details GenerateDetails()
+    public Details GenerateDetails(bool shuffle = true)
     {
         // Start the adventure
         state = State.Running;
 
-        Helpers.Shuffle(CPH, participants);
+        if (shuffle)
+        {
+            Helpers.Shuffle(CPH, participants);
+        }
+
         Region[] regions = (Region[])Enum.GetValues(typeof(Region));
         Region region = regions[CPH.Between(0, regions.Length - 1)];
         Details details = new Details
@@ -237,6 +242,17 @@ public class Adventure : RPGEvent
             Region = region,
             Participants = participants,
         };
+
+        details.TotalInvestment = 0;
+        details.Participants.ForEach(participant =>
+        {
+            details.TotalInvestment += participant.Investment;
+            participant.User.Caterium -= participant.Investment;
+            participant.Berries = participant.Investment / 2;
+            details.MaxInvestment = Math.Max(details.MaxInvestment, participant.Investment);
+        });
+
+        details.AverageInvestment = details.TotalInvestment / details.Participants.Count;
 
         return details;
     }
@@ -246,20 +262,43 @@ public class Adventure : RPGEvent
         // Start the adventure
         state = State.Running;
 
-        int totalInvestment = 0;
-        participants.ForEach(participant =>
-        {
-            totalInvestment += participant.Investment;
-            participant.User.Caterium -= participant.Investment;
-            participant.Berries = participant.Investment / 2;
-            details.MaxInvestment = Math.Max(details.MaxInvestment, participant.Investment);
-        });
+        DisplayAttribute RegionDisplay = details.Region.GetType()
+            .GetField(details.Region.ToString())
+            .GetCustomAttributes(typeof(DisplayAttribute), false)
+            .SingleOrDefault() as DisplayAttribute;
+        string RegionName = RegionDisplay?.GetName();
 
-        details.AverageInvestment = totalInvestment / participants.Count;
-
-        CPH.SendMessage($"With your {totalInvestment} caterium, the group purchases some Paleberries for safety...");
-        CPH.SendMessage(RaidStartMessage.Get().Replace("{location}", $"{Enum.GetName(typeof(Region), details.Region)}"));
+        CPH.SendMessage($"With your {details.TotalInvestment} caterium, the group purchases some Paleberries for safety...");
+        CPH.SendMessage(RaidStartMessage.Get().Replace("{location}", RegionName));
         CPH.Wait(EventDelaySec * 1000);
+    }
+
+    public IEnumerable<IAdventureEvent> GetAvailable(Details details)
+    {
+        return AvailableEvents.Where(e => e.CanRun(details));
+    }
+
+    public void DoEvent(Details details)
+    {
+        var available = GetAvailable(details);
+        int totalWeight = available.Aggregate(0, (current, e) => current + e.Weight);
+
+        int chosen = CPH.Between(0, totalWeight);
+        int index = -1;
+        do
+        {
+            index++;
+            IAdventureEvent current = available.ElementAt(index);
+            chosen -= current.Weight;
+        }
+        while (chosen > 0);
+        CPH.LogDebug($"Choosing event {index}");
+        available.ElementAt(index).Run(CPH, details);
+
+        if (details.Progress < participants.Count - 1)
+        {
+            CPH.Wait(EventDelaySec * 1000);
+        }
     }
 
     public override void Run()
@@ -273,27 +312,6 @@ public class Adventure : RPGEvent
         // Calculate Result
         for (details.Progress = 0; details.Progress < participants.Count; details.Progress++)
         {
-            var available = AvailableEvents.Where(e => e.CanRun(details));
-            int totalWeight = available.Aggregate(0, (current, e) => current + e.Weight);
-
-            CPH.LogDebug($"Num available: {available.Count()}");
-            int chosen = CPH.Between(0, totalWeight);
-            CPH.LogDebug($"Chosen weight: {chosen}");
-            int index = -1;
-            do
-            {
-                index++;
-                IAdventureEvent current = available.ElementAt(index);
-                chosen -= current.Weight;
-            }
-            while (chosen > 0);
-            CPH.LogDebug($"Choosing event {index}");
-            available.ElementAt(index).Run(CPH, details);
-
-            if (details.Progress < participants.Count - 1)
-            {
-                CPH.Wait(EventDelaySec * 1000);
-            }
         }
 
         int totalInvestment = 0;

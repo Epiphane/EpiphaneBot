@@ -146,18 +146,17 @@ public class MusicManager
 
     public async Task<FullTrack> StartPlaylist(int? offset = null)
     {
-        CPH.LogInfo("a3");
+        CPH.LogInfo("Finding primary device...");
         Device primary = PrimaryDevice;
-        CPH.LogInfo($"Primary: {primary}");
+        CPH.LogInfo("Setting shuffle to true...");
         await Spotify.Player.SetShuffle(new PlayerShuffleRequest(true) { DeviceId = primary.Id });
-        CPH.LogInfo("a4");
+        CPH.LogInfo("Getting list of tracks...");
         Paging<PlaylistTrack<IPlayableItem>> tracks = await Spotify.Playlists.GetItems(Playlist);
-        CPH.LogInfo("a5");
         if (offset == null)
         {
             offset = new Random().Next(tracks.Total ?? 0);
         }
-        CPH.LogInfo("a");
+        CPH.LogInfo("Resuming playback...");
         await Spotify.Player.ResumePlayback(new PlayerResumePlaybackRequest()
         {
             DeviceId = primary.Id,
@@ -167,13 +166,13 @@ public class MusicManager
             },
             ContextUri = $"spotify:playlist:{Playlist}"
         });
-        CPH.LogInfo("a2");
+        CPH.LogInfo("Getting the next song...");
         Paging<PlaylistTrack<IPlayableItem>> nextSong = await Spotify.Playlists.GetItems(Playlist, new PlaylistGetItemsRequest()
         {
             Offset = offset,
             Limit = 1,
         });
-        CPH.LogInfo("a!");
+        CPH.LogInfo("Playlist started!");
         return (FullTrack)nextSong.Items.First().Track;
     }
 

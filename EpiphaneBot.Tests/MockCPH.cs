@@ -14,20 +14,40 @@ namespace EpiphaneBot.Tests
             public bool Recording = false;
             public Queue<string> Messages = new Queue<string>();
             public List<string> ActionsRun = new List<string>();
-            public List<int> Waits = new List<int>();
+            public Queue<int> Waits = new Queue<int>();
         }
 
         public readonly StreamState State = new StreamState();
 
         public class MockState
         {
-            public Func<double> RandomDouble = () => new Random().NextDouble();
+            public Func<double> RandomDouble = () => 0.0;
         }
 
         public readonly MockState Mock = new MockState();
 
         public string TwitchClientId => "client-id";
         public string TwitchOAuthToken => "auth-token";
+
+        private Queue<double> queuedDoubles = new Queue<double>();
+
+        public MockCPH()
+        {
+            Mock.RandomDouble = () => queuedDoubles.Count > 0 ? queuedDoubles.Dequeue() : 0.0;
+        }
+
+        protected void QueueDoubles(double[] values)
+        {
+            foreach (double value in values)
+            {
+                QueueDouble(value);
+            }
+        }
+
+        protected void QueueDouble(double nextValue)
+        {
+            queuedDoubles.Enqueue(nextValue);
+        }
 
         public void AddToCredits(string section, string value, bool json = true)
         {
@@ -1183,7 +1203,7 @@ namespace EpiphaneBot.Tests
 
         public void Wait(int milliseconds)
         {
-            State.Waits.Add(milliseconds);
+            State.Waits.Enqueue(milliseconds);
         }
 
         public void WebsocketBroadcastJson(string data)

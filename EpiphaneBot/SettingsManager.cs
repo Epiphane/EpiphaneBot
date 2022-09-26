@@ -179,6 +179,19 @@ public class SettingsManager
         errorArgs.ErrorContext.Handled = true;
     }
 
+    public void ApplySettings(TextReader textReader)
+    {
+        JsonSerializer serializer = new JsonSerializer();
+        JsonTextReader reader = new JsonTextReader(textReader);
+        serializer.Error += HandleDeserializationError;
+        fullSettings = serializer.Deserialize<Dictionary<string, Settings>>(reader);
+
+        foreach (KeyValuePair<string, Settings> pairs in fullSettings)
+        {
+            scopes[pairs.Key] = new Scope(this, pairs.Value);
+        }
+    }
+
     public void LoadSettings()
     {
         if (IsMemoryLocal)
@@ -194,16 +207,8 @@ public class SettingsManager
 
         using (StreamReader file = File.OpenText(FilePath))
         {
-            JsonSerializer serializer = new JsonSerializer();
-            serializer.Error += HandleDeserializationError;
-            fullSettings = (Dictionary<string, Settings>)serializer.Deserialize(file, typeof(Dictionary<string, Settings>));
-
-            foreach (KeyValuePair<string, Settings> pairs in fullSettings)
-            {
-                scopes[pairs.Key] = new Scope(this, pairs.Value);
-            }
+            ApplySettings(file);
         }
-
     }
 
     public void PersistSettings(int retries = 2)
