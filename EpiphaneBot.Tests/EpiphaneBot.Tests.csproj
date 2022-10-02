@@ -71,4 +71,10 @@
   <ItemGroup>
     <ProjectReference Include="..\EpiphaneBot\EpiphaneBot.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Remove="Adventure\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Adventure\" />
+  </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Streamer.bot.Common.Events;
 using Streamer.bot.Plugin.Interface;
 
@@ -34,6 +35,18 @@ namespace EpiphaneBot.Tests
         public MockCPH()
         {
             Mock.RandomDouble = () => queuedDoubles.Count > 0 ? queuedDoubles.Dequeue() : 0.0;
+        }
+
+        protected void AssertMessage(string message)
+        {
+            Assert.IsTrue(State.Messages.Count > 0);
+            Assert.AreEqual(message, State.Messages.Dequeue());
+        }
+
+        protected void AssertWait(int milliseconds)
+        {
+            Assert.IsTrue(State.Waits.Count > 0);
+            Assert.AreEqual(milliseconds, State.Waits.Dequeue());
         }
 
         protected void QueueDoubles(double[] values)

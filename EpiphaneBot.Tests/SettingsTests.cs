@@ -45,20 +45,27 @@ namespace EpiphaneBot.Tests
         [TestMethod]
         public void TestLoadSettingsDelayed()
         {
-            string foo = settings.GetScope("Setting1").GetScope("Sub Setting").Get<string>("Value");
-            Assert.AreEqual("foo", foo);
+            SettingsManager.Scope Setting1 = settings.GetScope("Setting1");
+            SettingsManager.Scope SubSetting = Setting1.GetScope("Sub Setting");
 
-            Setting<string> fooVar = settings.GetScope("Setting1").GetScope("Sub Setting").At("Value", "not foo");
-            Assert.AreEqual("foo", fooVar);
+            string foo = SubSetting.Get<string>("Value", "foo default");
+            Assert.AreEqual("foo default", foo);
+
+            Setting<string> fooVar = SubSetting.At("Value", "not foo");
+            Assert.AreEqual("not foo", fooVar);
+
+            int bar = Setting1.Get("bar", 12);
+            Assert.AreEqual(12, bar);
+
+            Setting<int> barVar = Setting1.At("bar", 11);
+            Assert.AreEqual(11, barVar);
 
             string text = @"{
                 ""Setting1"": {
                     ""Sub Setting"": {
                         ""Value"": ""foo""
-                    }
-                },
-                ""Setting2"": {
-                    ""Value"": 10
+                    },
+                    ""bar"": 10
                 }
             }";
             settings.ApplySettings(new StringReader(text));
@@ -66,6 +73,10 @@ namespace EpiphaneBot.Tests
             foo = settings.GetScope("Setting1").GetScope("Sub Setting").Get<string>("Value");
             Assert.AreEqual("foo", foo);
             Assert.AreEqual("foo", fooVar);
+
+            bar = Setting1.Get("bar", 12);
+            Assert.AreEqual(10, bar);
+            Assert.AreEqual(10, barVar);
         }
     }
 }

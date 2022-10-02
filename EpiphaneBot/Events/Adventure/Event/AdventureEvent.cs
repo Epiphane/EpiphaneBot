@@ -7,7 +7,7 @@ using Streamer.bot.Plugin.Interface;
 
 public interface IAdventureEvent
 {
-    int Weight { get; }
+    int Rarity { get; }
     void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope);
     bool CanRun(Adventure.Details details);
     void Run(IInlineInvokeProxy CPH, Adventure.Details details);

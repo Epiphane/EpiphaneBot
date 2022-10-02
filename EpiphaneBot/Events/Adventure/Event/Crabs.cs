@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class Stinger : IAdventureEvent
+public class CrabEvent : IAdventureEvent
 {
     Setting<int> RaritySetting;
     Setting<double> Multiplier;
@@ -18,8 +18,8 @@ public class Stinger : IAdventureEvent
 
     public void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope)
     {
-        RaritySetting = scope.At("Rarity", 3);
-        Multiplier = scope.At("Multiplier", 1.3);
+        RaritySetting = scope.At("Rarity", 1);
+        Multiplier = scope.At("Multiplier", 1.2);
         AbsoluteDeathChance = scope.At("AbsoluteDeathChance", 0.3);
         AbsoluteWinChance = scope.At("AbsoluteWinChance", 0.3);
         MinWinChance = scope.At("MinWinChance", 0.25);

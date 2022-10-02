@@ -92,7 +92,7 @@ public class Adventure : RPGEvent
     private readonly Setting<int> EventDelaySec;
     private readonly Setting<int> CooldownSec;
 
-    private readonly List<IAdventureEvent> AvailableEvents = new List<IAdventureEvent>();
+    public readonly List<IAdventureEvent> AvailableEvents = new List<IAdventureEvent>();
 
     private readonly SettingsManager.Scope EventSettings;
 
@@ -281,20 +281,24 @@ public class Adventure : RPGEvent
     public void DoEvent(Details details)
     {
         var available = GetAvailable(details);
-        int totalWeight = available.Aggregate(0, (current, e) => current + e.Weight);
+        int maxRarity = 1 + available.Aggregate(0, (current, e) => Math.Max(current, e.Rarity));
+        int totalWeight = available.Aggregate(0, (current, e) => current + (maxRarity - e.Rarity));
 
-        int chosen = CPH.Between(0, totalWeight);
+        int chosen = CPH.Between(1, totalWeight);
         int index = -1;
         do
         {
             index++;
             IAdventureEvent current = available.ElementAt(index);
-            chosen -= current.Weight;
+            chosen -= (maxRarity - current.Rarity);
         }
         while (chosen > 0);
         CPH.LogDebug($"Choosing event {index}");
         available.ElementAt(index).Run(CPH, details);
+    }
 
+    public void PostEvent(Details details)
+    {
         if (details.Progress < participants.Count - 1)
         {
             CPH.Wait(EventDelaySec * 1000);
@@ -312,6 +316,8 @@ public class Adventure : RPGEvent
         // Calculate Result
         for (details.Progress = 0; details.Progress < participants.Count; details.Progress++)
         {
+            DoEvent(details);
+            PostEvent(details);
         }
 
         int totalInvestment = 0;

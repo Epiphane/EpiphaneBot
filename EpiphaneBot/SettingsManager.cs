@@ -8,25 +8,23 @@ using Newtonsoft.Json;
 using Streamer.bot.Plugin.Interface;
 
 using Settings = System.Collections.Generic.Dictionary<string, object>;
+using static SettingsManager;
 
 public class Setting<T>
 {
-    private readonly SettingsManager manager;
-    private readonly Settings settings;
+    private readonly Scope scope;
     private readonly string key;
     private readonly T defaultValue;
 
-    public Setting(SettingsManager manager, Settings settings, string key, T defaultValue = default)
+    public Setting(Scope scope, string key, T defaultValue = default)
     {
-        this.manager = manager;
-        this.settings = settings;
+        this.scope = scope;
         this.key = key;
         this.defaultValue = defaultValue;
 
-        if (!settings.ContainsKey(key))
+        if (!scope.Has(key))
         {
-            settings[key] = defaultValue;
-            manager.PersistSettings();
+            scope.SetValue(key, defaultValue);
         }
     }
 
@@ -34,13 +32,12 @@ public class Setting<T>
 
     public T Get()
     {
-        return (T)(settings.ContainsKey(key) ? settings[key] : defaultValue);
+        return scope.Get<T>(key, defaultValue);
     }
 
     public void Set(T value)
     {
-        settings[key] = value;
-        manager.PersistSettings();
+        scope.SetValue(key, value);
     }
 }
 
@@ -69,6 +66,83 @@ public class SettingsManager
             }
         }
 
+        public void ApplySettings(JsonReader reader)
+        {
+            string property = null;
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonToken.PropertyName)
+                {
+                    property = (string)reader.Value;
+                }
+                else if (reader.TokenType == JsonToken.EndObject)
+                {
+                    if (property != null)
+                    {
+                        throw new Exception("Unexpected end object when assigning a property");
+                    }
+
+                    return;
+                }
+                else if (property == null)
+                {
+                    throw new Exception("Unexpected value without a property name");
+                }
+                else
+                {
+                    switch (reader.TokenType)
+                    {
+                        case JsonToken.PropertyName:
+                            throw new Exception("Unexpected duplicate property");
+
+                        case JsonToken.StartObject:
+                            if (!settings.ContainsKey(property))
+                            {
+                                settings[property] = new Settings();
+                            }
+
+                            if (!scopes.ContainsKey(property))
+                            {
+                                scopes[property] = new Scope(manager, (Settings)settings[property]);
+                            }
+
+                            scopes[property].ApplySettings(reader);
+                            break;
+
+                        case JsonToken.Boolean:
+                        case JsonToken.Bytes:
+                        case JsonToken.String:
+                        case JsonToken.Integer:
+                        case JsonToken.Null:
+                        case JsonToken.Float:
+                            settings[property] = reader.Value;
+                            break;
+
+                        case JsonToken.EndObject:
+                        case JsonToken.StartConstructor:
+                        case JsonToken.EndConstructor:
+                        case JsonToken.None:
+                        case JsonToken.Comment:
+                        case JsonToken.Raw:
+                        case JsonToken.StartArray:
+                        case JsonToken.EndArray:
+                        case JsonToken.Date:
+                        case JsonToken.Undefined:
+                            if (reader.Value == null)
+                            {
+                                throw new Exception($"Unhandled JSON token: {reader.TokenType}");
+                            }
+                            else
+                            {
+                                throw new Exception($"Unhandled JSON token: {reader.TokenType}, value: {reader.Value}");
+                            }
+                    }
+
+                    property = null;
+                }
+            }
+        }
+
         public override string ToString()
         {
             return Serialized;
@@ -80,6 +154,11 @@ public class SettingsManager
             if (value == null)
             {
                 return defaultValue;
+            }
+
+            if (typeof(T) == typeof(int))
+            {
+                return (T)(object)Convert.ToInt32(value);
             }
 
             return (T)value;
@@ -109,7 +188,7 @@ public class SettingsManager
 
         public Setting<T> At<T>(string key, T defaultValue = default)
         {
-            return new Setting<T>(manager, settings, key, defaultValue);
+            return new Setting<T>(this, key, defaultValue);
         }
 
         public object this[string key]
@@ -179,12 +258,79 @@ public class SettingsManager
         errorArgs.ErrorContext.Handled = true;
     }
 
+    public void ApplySettings(JsonReader reader)
+    {
+        if (!reader.Read() || reader.TokenType != JsonToken.StartObject)
+        {
+            throw new Exception("Could not apply settings, JSON is not an object");
+        }
+
+        string scope = null;
+        while (reader.Read())
+        {
+            switch (reader.TokenType)
+            {
+                case JsonToken.PropertyName:
+                    scope = (string)reader.Value;
+                    break;
+
+                case JsonToken.StartObject:
+                    if (scope == null)
+                    {
+                        throw new Exception("Unexpected object without a scope name");
+                    }
+
+                    if (!fullSettings.ContainsKey(scope))
+                    {
+                        fullSettings[scope] = new Settings();
+                    }
+
+                    if (!scopes.ContainsKey(scope))
+                    {
+                        scopes[scope] = new Scope(this, fullSettings[scope]);
+                    }
+
+                    scopes[scope].ApplySettings(reader);
+                    break;
+
+                case JsonToken.EndObject:
+                    return;
+
+                case JsonToken.None:
+                case JsonToken.Boolean:
+                case JsonToken.Bytes:
+                case JsonToken.Comment:
+                case JsonToken.Date:
+                case JsonToken.EndArray:
+                case JsonToken.StartConstructor:
+                case JsonToken.EndConstructor:
+                case JsonToken.Float:
+                case JsonToken.Integer:
+                case JsonToken.Null:
+                case JsonToken.Raw:
+                case JsonToken.StartArray:
+                case JsonToken.String:
+                case JsonToken.Undefined:
+                    if (reader.Value == null)
+                    {
+                        throw new Exception($"Unhandled JSON token: {reader.TokenType}");
+                    }
+                    else
+                    {
+                        throw new Exception($"Unhandled JSON token: {reader.TokenType}, value: {reader.Value}");
+                    }
+            }
+        }
+    }
+
     public void ApplySettings(TextReader textReader)
     {
         JsonSerializer serializer = new JsonSerializer();
         JsonTextReader reader = new JsonTextReader(textReader);
         serializer.Error += HandleDeserializationError;
-        fullSettings = serializer.Deserialize<Dictionary<string, Settings>>(reader);
+        //fullSettings = serializer.Deserialize(reader);
+
+        ApplySettings(reader);
 
         foreach (KeyValuePair<string, Settings> pairs in fullSettings)
         {
