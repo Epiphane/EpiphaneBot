@@ -9,10 +9,10 @@ public class CrabEvent : IAdventureEvent
 {
     Setting<int> RaritySetting;
     Setting<double> Multiplier;
-    Setting<double> AbsoluteDeathChance;
-    Setting<double> AbsoluteWinChance;
     Setting<double> MinWinChance;
     Setting<double> MaxWinChance;
+    Setting<int> AverageWinPlayers;
+    Setting<double> OneDeathChance;
 
     public int Rarity { get { return RaritySetting; } }
 
@@ -20,10 +20,10 @@ public class CrabEvent : IAdventureEvent
     {
         RaritySetting = scope.At("Rarity", 1);
         Multiplier = scope.At("Multiplier", 1.2);
-        AbsoluteDeathChance = scope.At("AbsoluteDeathChance", 0.3);
-        AbsoluteWinChance = scope.At("AbsoluteWinChance", 0.3);
-        MinWinChance = scope.At("MinWinChance", 0.25);
-        MaxWinChance = scope.At("MaxWinChance", 0.75);
+        MinWinChance = scope.At("MinWinChance", 0.3);
+        MaxWinChance = scope.At("MaxWinChance", 0.7);
+        AverageWinPlayers = scope.At("AverageWinPlayers", 3);
+        OneDeathChance = scope.At("OneDeathChance", 0.75);
     }
 
     public bool CanRun(Adventure.Details details)
@@ -45,50 +45,52 @@ public class CrabEvent : IAdventureEvent
     public void Run(IInlineInvokeProxy CPH, Adventure.Details details)
     {
         Adventure.Participant victim = details.Participants[details.Progress];
-        CPH.SendMessage($"An alpha stinger appears and lunges at {victim}!!");
+        CPH.SendMessage($"Some U6 crabs begin swarming the group!!");
         CPH.Wait(5000);
 
         double chance = CPH.NextDouble();
 
-        double lossThreshold = AbsoluteDeathChance;
-        double winThreshold = 1.0 - AbsoluteWinChance;
+        // Survival chance goes up with more players; 0.5 at 3 players (default)
+        double playerCountScaled = Math.Clamp((double)(details.Participants.Count - 1) / ((AverageWinPlayers - 1) * 2), 0.0, 1.0);
 
-        if (chance < lossThreshold)
+        // Scale from [0.0, 1.0] to the min and max win chances
+        double survivalChance = (playerCountScaled * MaxWinChance - MinWinChance) + MinWinChance;
+
+        if (chance >= survivalChance)
         {
-            CPH.SendMessage($"The stinger was too quick epiphaDEAD {victim} can't carry on...");
-            Lose(details, victim);
-        }
-        else if (chance >= winThreshold)
-        {
-            CPH.SendMessage($"{victim} was too quick and got away easily! epiphaGOOD");
+            if (details.Participants.Count == 1)
+            {
+                CPH.SendMessage($"Somehow, {victim} fends them off all alone! epiphaGOOD");
+            }
+            else
+            {
+                CPH.SendMessage("Everyone teams up and takes down the crabs together! epiphaGOOD");
+            }
             Win(details);
         }
         else
         {
-            // winChance: [-1, 1]
-            double InvestmentDiff = details.MaxInvestment - details.AverageInvestment;
-            double winChance = 0.5;
-            if (InvestmentDiff != 0)
+            if (details.Progress < 1)
             {
-                winChance = (victim.Investment - details.AverageInvestment) / (details.MaxInvestment - details.AverageInvestment);
-            }
-            // [0, 1]
-            winChance = (winChance + 1) / 2;
-            // [0, Max - Min]
-            winChance *= (MaxWinChance - MinWinChance);
-            // [Min, Max]
-            winChance += MinWinChance;
-            double personalThreshold = 1.0 - winChance;
-            if (chance < personalThreshold)
-            {
-                CPH.SendMessage($"{victim} ate all their Paleberries, but it wasn't enough... epiphaDEAD");
-                Lose(details, victim);
+                CPH.SendMessage($"It's too much! {victim} can't handle them all alone epiphaDEAD");
             }
             else
             {
-                CPH.SendMessage($"{victim} ate some Paleberries and the party barely got away epiphaGOOD");
-                Win(details);
+                // 3/4 chance that it's just the one
+                chance = chance / survivalChance;
+                if (chance < OneDeathChance)
+                {
+                    CPH.SendMessage($"Every crab immediately locks onto {victim}! epiphaDEAD {victim} can't carry on...");
+                }
+                else
+                {
+                    int previous = CPH.Between(0, details.Progress - 1);
+                    Adventure.Participant victim2 = details.Participants[previous];
+                    CPH.SendMessage($"They just keep spawning more!! epiphaDEAD {victim} and {victim2} can't carry on...");
+                    victim2.Health = 0;
+                }
             }
+            Lose(details, victim);
         }
     }
 }

@@ -49,6 +49,11 @@ namespace EpiphaneBot.Tests
             Assert.AreEqual(milliseconds, State.Waits.Dequeue());
         }
 
+        protected string[] GetAllMessages()
+        {
+            return State.Messages.ToArray();
+        }
+
         protected void QueueDoubles(double[] values)
         {
             foreach (double value in values)

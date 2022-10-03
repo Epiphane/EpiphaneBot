@@ -1314,9 +1314,4 @@ public class CPHProxy : IInlineInvokeProxy
     {
         return Proxy.TwitchPollCreate(title, choices, duration, channelPointsPerVote);
     }
-
-    public void LumiaSendCommand(string command)
-    {
-        Proxy.LumiaSendCommand(command);
-    }
 }
