@@ -354,10 +354,17 @@ public partial class CPHInline
         return true;
     }
 
+    public bool RefreshChat()
+    {
+        sceneManager.RefreshChat();
+        return true;
+    }
+
     private int StreamSequenceId = 0;
     public async Task StartStreamSequence(bool goLive)
     {
         int id = ++StreamSequenceId;
+        RefreshChat();
 
         // Start the music
         FullTrack track = musicManager.StartPlaylist().GetAwaiter().GetResult();
@@ -365,15 +372,15 @@ public partial class CPHInline
         // Go to the "Stream Starting" screen
         sceneManager.TransitionToScene(SceneManager.FauxScene.Starting);
         sceneManager.SetIntroRemainingTime(track);
-        sceneManager.RefreshChat();
         rpgManager.ResetFirstEvent(true);
+        EnableRaids();
         if (goLive)
         {
             CPHProxy.ObsStartStreaming();
             CPHProxy.ObsStartRecording();
         }
 
-        await Task.Delay(track.DurationMs - 2000);
+        await Task.Delay(track.DurationMs - 5000);
         // Make sure it hasn't happened twice now
         if (id != StreamSequenceId)
         {
@@ -393,11 +400,30 @@ public partial class CPHInline
         return rpgManager.HandleFirstCommand(UserId, UserName, RawInput);
     }
 
+    private bool RaidsEnabled = true;
+
+    public bool EnableRaids()
+    {
+        RaidsEnabled = true;
+        return true;
+    }
+
+    public bool ClearRaid()
+    {
+        rpgManager.ClearRaid();
+        return true;
+    }
+
+    public bool DisableRaids()
+    {
+        RaidsEnabled = false;
+        return true;
+    }
+
     public bool StartRaid()
     {
-        if (!CPH.ObsIsStreaming())
+        if (!RaidsEnabled)
         {
-            CPH.SendMessage("Nice try, but you can't start a raid off-stream ;)");
             return false;
         }
 
@@ -428,11 +454,33 @@ public partial class CPHInline
         return true;
     }
 
-    /*
+    public bool GetPrestige()
+    {
+        User user = rpgManager.GetUser(UserId, UserName);
+        if (user is null)
+        {
+            return false;
+        }
+
+        if (user.Prestige == 0)
+        {
+            CPH.SendMessage($"{user}, you have {user.Prestige} golden nut trophies! epiphaPro2");
+        }
+        else if (user.Prestige == 1)
+        {
+            CPH.SendMessage($"{user}, you have {user.Prestige} golden nut trophy! epiphaLuck2");
+        }
+        else
+        {
+            CPH.SendMessage($"{user}, you have {user.Prestige} golden nut trophies! epiphaLuck2");
+        }
+        return true;
+    }
+
     public bool GiveCaterium()
     {
+        return rpgManager.GiveCaterium(UserId, UserName, RawInput);
     }
-    */
 
     public bool BuyCaterium()
     {

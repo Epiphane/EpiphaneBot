@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using SpotifyAPI.Web;
 using Streamer.bot.Plugin.Interface;
+using System.Windows.Forms;
 
 public class MusicManager
 {
@@ -13,7 +14,7 @@ public class MusicManager
     private const string kExpirationTime = "ExpirationTime";
     private const string kClientId = "ClientId";
     private const string kClientSecret = "ClientSecret";
-    private const string kComputerName = "Thomas-PC";
+    private const string kComputerName = "THOMAS-PC";
 
     // Inputs
     private readonly IInlineInvokeProxy CPH;
@@ -72,8 +73,25 @@ public class MusicManager
         RefreshToken("Spotify access token expired");
     }
 
+    private bool HasShownClientIDWarning = false;
+
     private void RefreshToken(string reason)
     {
+        if (!settings.Has(kClientId) || !settings.Has(kClientSecret))
+        {
+            if (!HasShownClientIDWarning)
+            {
+                MessageBox.Show("Client ID and Secret not available");
+                HasShownClientIDWarning = true;
+            }
+
+            return;
+        }
+
+        if (!settings.Has(kRefreshToken)) {
+            return;
+        }
+
         CPH.LogInfo($"{reason}, refreshing token...");
         var newResponse = new OAuthClient().RequestToken(
             new AuthorizationCodeRefreshRequest((string)settings[kClientId], (string)settings[kClientSecret], (string)settings[kRefreshToken])
@@ -137,6 +155,8 @@ public class MusicManager
             Device pc = devices.Devices.Find(d => d.Name == kComputerName);
             if (pc == null)
             {
+                CPH.LogWarn($"Could not find device with name: {kComputerName}. Found devices:");
+                devices.Devices.ForEach(d => CPH.LogWarn($"    - {d.Name}"));
                 return devices.Devices.First();
             }
 

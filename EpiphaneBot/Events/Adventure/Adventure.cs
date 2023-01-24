@@ -70,6 +70,8 @@ public class Adventure : RPGEvent
         public int Health = 10;
         public int Winnings = 0;
 
+        public bool IsAlive { get { return Health > 0; } }
+
         public override string ToString()
         {
             return User.Name;
@@ -130,6 +132,7 @@ public class Adventure : RPGEvent
             IAdventureEvent EventType = (IAdventureEvent)Activator.CreateInstance(type);
             EventType.Init(CPH, EventSettings.GetScope(type.Name));
             AvailableEvents.Add(EventType);
+            //CPH.LogDebug($"Registering event {EventType.GetType().Name}");
         }
     }
 
@@ -164,7 +167,11 @@ public class Adventure : RPGEvent
     public bool TryJoin(User user, string investment, out int amount)
     {
         amount = 0;
-        if (!ParseInvestment(investment, out amount))
+        if (investment == "all")
+        {
+            amount = user.Caterium;
+        }
+        else if (!ParseInvestment(investment, out amount))
         {
             CPH.LogWarn($"Did not add {user} to raid, could not parse investment");
             return false;
@@ -246,8 +253,10 @@ public class Adventure : RPGEvent
         details.TotalInvestment = 0;
         details.Participants.ForEach(participant =>
         {
+            User user = User.Get(CPH, DB, participant.User.Id, participant.User.Name);
+            participant.Investment = Math.Min(participant.Investment, user.Caterium);
             details.TotalInvestment += participant.Investment;
-            participant.User.Caterium -= participant.Investment;
+            //participant.User.Caterium -= participant.Investment;
             participant.Berries = participant.Investment / 2;
             details.MaxInvestment = Math.Max(details.MaxInvestment, participant.Investment);
         });
@@ -281,6 +290,12 @@ public class Adventure : RPGEvent
     public void DoEvent(Details details)
     {
         var available = GetAvailable(details);
+        /*
+        foreach(IAdventureEvent evt in available)
+        {
+            CPH.LogDebug($"Available: {evt.GetType().Name} ({evt.Rarity})");
+        }
+        */
         int maxRarity = 1 + available.Aggregate(0, (current, e) => Math.Max(current, e.Rarity));
         int totalWeight = available.Aggregate(0, (current, e) => current + (maxRarity - e.Rarity));
 
@@ -293,7 +308,7 @@ public class Adventure : RPGEvent
             chosen -= (maxRarity - current.Rarity);
         }
         while (chosen > 0);
-        CPH.LogDebug($"Choosing event {index}");
+        //CPH.LogDebug($"Choosing event {index}");
         available.ElementAt(index).Run(CPH, details);
     }
 
@@ -332,15 +347,35 @@ public class Adventure : RPGEvent
         List<string> winnings = new List<string>();
         participants.ForEach(participant =>
         {
+            User user = User.Get(CPH, DB, participant.User.Id, participant.User.Name);
+
             if (participant.Health > 0)
             {
                 double claim = (double)participant.Investment / totalInvestment;
                 participant.Winnings = (int)Math.Ceiling(claim * details.Winnings);
-                participant.User.Caterium += participant.Winnings;
-                winnings.Add($"{participant} ({participant.Winnings})");
+                user.Caterium += participant.Winnings;
+                winnings.Add($"{participant} ({participant.Investment + participant.Winnings})");
+            }
+            else
+            {
+                user.Caterium -= participant.Investment;
             }
 
-            DB.Save(participant.User);
+            if (user.Caterium < 0)
+            {
+                user.Caterium = 0;
+                user.Prestige++;
+                if (user.Prestige > 1)
+                {
+                    CPH.SendMessage($"{participant} has earned 2 billion caterium and earned a golden nut trophy, for a total of {user.Prestige} trophies! Congratulations epiphaLuck1");
+                }
+                else
+                {
+                    CPH.SendMessage($"{participant} has earned 2 billion caterium and earned their first golden nut trophy! Congratulations epiphaLuck1");
+                }
+            }
+
+            DB.Save(user);
         });
 
         var survivors = details.Participants.Where(user => user.Health > 0);
@@ -352,12 +387,14 @@ public class Adventure : RPGEvent
         else if (numSurvivors == 1)
         {
             CPH.SendMessage($"The adventure is complete! Only {survivors.ElementAt(0)} survived.");
-            CPH.SendMessage($"{survivors.ElementAt(0)} gets all the {details.Winnings} caterium found...");
+            CPH.SendMessage($"{survivors.ElementAt(0)} gets all the {survivors.ElementAt(0).Investment + details.Winnings} caterium found...");
         }
         else
         {
             CPH.SendMessage($"The adventure is complete! Survivors: {String.Join(", ", winnings)}");
         }
+
+        CPH.LogDebug($"Num survivors: {numSurvivors}");
 
         CooldownTime = DateTime.Now.AddSeconds(CooldownSec);
         state = State.Cooldown;
@@ -391,7 +428,7 @@ public class Adventure : RPGEvent
         {
             CPH.SendMessage(CooldownMessage.Get()
                 .Replace("{user}", user.Name)
-                .Replace("{cooldown}", CooldownTime.Subtract(DateTime.Now).Seconds.ToString())
+                .Replace("{cooldown}", CooldownTime.Subtract(DateTime.Now).TotalSeconds.ToString())
                 );
         }
         else

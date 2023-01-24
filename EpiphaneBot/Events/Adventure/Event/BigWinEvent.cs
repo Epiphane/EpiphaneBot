@@ -16,7 +16,7 @@ public class BigWinEvent : IAdventureEvent
     public void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope)
     {
         RaritySetting = scope.At("Rarity", 99);
-        Multiplier = scope.At("Multiplier", 3.0);
+        Multiplier = scope.At("Multiplier", 5.0);
     }
 
     public bool CanRun(Adventure.Details details)

@@ -19,8 +19,8 @@ public class CrabEvent : IAdventureEvent
     public void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope)
     {
         RaritySetting = scope.At("Rarity", 1);
-        Multiplier = scope.At("Multiplier", 1.2);
-        MinWinChance = scope.At("MinWinChance", 0.3);
+        Multiplier = scope.At("Multiplier", 0.3);
+        MinWinChance = scope.At("MinWinChance", 0.35);
         MaxWinChance = scope.At("MaxWinChance", 0.7);
         AverageWinPlayers = scope.At("AverageWinPlayers", 3);
         OneDeathChance = scope.At("OneDeathChance", 0.75);
@@ -38,7 +38,7 @@ public class CrabEvent : IAdventureEvent
 
     private void Lose(Adventure.Details details, Adventure.Participant victim)
     {
-        details.Winnings += (int)Math.Round(Multiplier * details.AverageInvestment);
+        //details.Winnings += (int)Math.Round(Multiplier * details.AverageInvestment);
         victim.Health = 0;
     }
 
@@ -51,12 +51,14 @@ public class CrabEvent : IAdventureEvent
         double chance = CPH.NextDouble();
 
         // Survival chance goes up with more players; 0.5 at 3 players (default)
-        double playerCountScaled = Math.Clamp((double)(details.Participants.Count - 1) / ((AverageWinPlayers - 1) * 2), 0.0, 1.0);
+        double playerCountScaled = Math.Min((double)(details.Participants.Count - 1) / ((AverageWinPlayers - 1) * 2), 1.0);
 
         // Scale from [0.0, 1.0] to the min and max win chances
-        double survivalChance = (playerCountScaled * MaxWinChance - MinWinChance) + MinWinChance;
+        double survivalChance = (playerCountScaled * (MaxWinChance - MinWinChance)) + MinWinChance;
+        //CPH.LogDebug($"Survival chance: {survivalChance} | RNG: {chance}");
+        double survivalThreshold = 1 - survivalChance;
 
-        if (chance >= survivalChance)
+        if (chance >= survivalThreshold)
         {
             if (details.Participants.Count == 1)
             {
@@ -77,7 +79,7 @@ public class CrabEvent : IAdventureEvent
             else
             {
                 // 3/4 chance that it's just the one
-                chance = chance / survivalChance;
+                chance = chance / survivalThreshold;
                 if (chance < OneDeathChance)
                 {
                     CPH.SendMessage($"Every crab immediately locks onto {victim}! epiphaDEAD {victim} can't carry on...");
@@ -86,8 +88,15 @@ public class CrabEvent : IAdventureEvent
                 {
                     int previous = CPH.Between(0, details.Progress - 1);
                     Adventure.Participant victim2 = details.Participants[previous];
-                    CPH.SendMessage($"They just keep spawning more!! epiphaDEAD {victim} and {victim2} can't carry on...");
-                    victim2.Health = 0;
+                    if (victim2.IsAlive)
+                    {
+                        CPH.SendMessage($"They just keep spawning more!! epiphaDEAD {victim} and {victim2} can't carry on...");
+                        victim2.Health = 0;
+                    }
+                    else
+                    {
+                        CPH.SendMessage($"Every crab immediately locks onto {victim}! epiphaDEAD {victim} can't carry on...");
+                    }
                 }
             }
             Lose(details, victim);

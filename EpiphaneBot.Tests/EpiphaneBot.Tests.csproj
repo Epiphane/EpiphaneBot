@@ -18,12 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="SpotifyAPI.Web">
-      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/SpotifyAPI.Web.dll</HintPath>
-    </Reference>
-    <Reference Include="SpotifyAPI.Web.Auth">
-      <HintPath>/Users/tsteinke/Downloads/Streamer.bot-x64-0.1.12/SpotifyAPI.Web.Auth.dll</HintPath>
-    </Reference>
     <Reference Include="Streamer.bot">
       <HintPath>..\Dependencies\Streamer.bot.exe</HintPath>
     </Reference>

@@ -15,8 +15,8 @@ public class WinEvent : IAdventureEvent
 
     public void Init(IInlineInvokeProxy CPH, SettingsManager.Scope scope)
     {
-        RaritySetting = scope.At("Rarity", 2);
-        Multiplier = scope.At("Multiplier", 1.5);
+        RaritySetting = scope.At("Rarity", 3);
+        Multiplier = scope.At("Multiplier", 1.0);
     }
 
     public bool CanRun(Adventure.Details details)

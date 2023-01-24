@@ -50,6 +50,7 @@ public class SceneManager
     public enum FauxScene
     {
         Starting,
+        Ending,
         Speedrunning,
         SpeedrunningLarge,
         Browser,
@@ -65,6 +66,15 @@ public class SceneManager
         else
         {
             HideIntro();
+        }
+
+        if (scene == FauxScene.Ending)
+        {
+            ShowOutro();
+        }
+        else
+        {
+            HideOutro();
         }
 
         if (scene == FauxScene.Speedrunning)
@@ -96,6 +106,16 @@ public class SceneManager
         CPH.ObsShowFilter("[SRC] Starting Soon", "Fade Out");
         CPH.ObsSourceUnMute("[A] Microphone", "Microphone");
         CPH.ObsSourceUnMute("[A] No Discord No Chrome", "No Discord No Chrome");
+    }
+
+    public void ShowOutro()
+    {
+        CPH.ObsShowFilter("[SRC] Stream Ending", "Fade In");
+    }
+
+    public void HideOutro()
+    {
+        CPH.ObsShowFilter("[SRC] Stream Ending", "Fade Out");
     }
 
     public void SetIntroRemainingTime(FullTrack track)
