@@ -1,0 +1,42 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0.24",
+	"FriendlyName": "TwiWorks",
+	"Description": "TwiWorks Is The Easy-To-Use Unreal Engine 4 Twitch Integration!",
+	"Category": "Misc",
+	"CreatedBy": "HowToCompute",
+	"CreatedByURL": "https://how2compute.cf",
+	"DocsURL": "https://docs.google.com/document/d/1zPvmQbD9uXHutyJwnAaZmIJ-qXMp0KwpiEuOgzlcCXY/edit?usp=sharing",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/50ad7661b7274a408034fc4ad7e4aa82",
+	"SupportURL": "mailto:howtocompute123@gmail.com",
+	"EngineVersion": "5.0.0",
+	"CanContainContent": true,
+	"Installed": true,
+	"Modules": [
+		{
+			"Name": "TwitchPlugin",
+			"Type": "Runtime",
+			"LoadingPhase": "PreLoadingScreen",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		},
+		{
+			"Name": "TwitchSettingsPlugin",
+			"Type": "Runtime",
+			"LoadingPhase": "PreLoadingScreen",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		},
+		{
+			"Name": "TwitchSettingsEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostEngineInit",
+			"PlatformAllowList": [
+				"Win64"
+			]
+		}
+	]
+}

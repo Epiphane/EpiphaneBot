@@ -21,14 +21,14 @@ private:
 	static bool EnsureTable();
 
 public:
-	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (DisplayName = "Get Chat Player"))
-	static AChatPlayer* GetFromAuthor(FTwitchMessageAuthor Author);
+	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (DisplayName = "Get Chat Player", AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
+	static AChatPlayer* GetFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, TSubclassOf<AChatPlayer> Class);
+
+	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
+	static AChatPlayer* FindOrCreate(UObject* WorldContextObject, int64 Id, FString Name, TSubclassOf<AChatPlayer> Class);
 
 	UFUNCTION(BlueprintCallable, Category = "Chat Player")
-	static AChatPlayer* FindOrCreate(int64 Id, FString Name);
-
-	UFUNCTION(BlueprintCallable, Category = "Chat Player")
-	bool RefreshStats();
+	bool ReloadData();
 
 	UPROPERTY(BlueprintAssignable)
 	FOnCateriumOverflow OnCateriumOverflow;
@@ -38,14 +38,14 @@ public:
 	void AddCaterium(int32 Caterium);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Player")
-	int32 ID;
+	int32 ID = 50;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Player")
 	FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Player")
-	int32 Caterium;
+	int32 Caterium = 0;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Chat Player")
-	int32 Prestige;
+	int32 Prestige = 0;
 };

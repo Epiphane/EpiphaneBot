@@ -14,14 +14,14 @@ bool AChatPlayer::EnsureTable()
 
 	return SqliteConnection->Execute(R"(CREATE TABLE IF NOT EXISTS "User" (
 		"Id"		INTEGER,
-		"Name"		TEXT UNIQUE,
-		"Caterium"	INTEGER DEFAULT 0,
+		"Name"		TEXT UNIQUE NOT NULL,
+		"Caterium"	INTEGER DEFAULT 15,
 		"Prestige"	INTEGER NOT NULL DEFAULT 0,
 		PRIMARY KEY("Id")
 	))");
 }
 
-AChatPlayer* AChatPlayer::GetFromAuthor(FTwitchMessageAuthor Author)
+AChatPlayer* AChatPlayer::GetFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, TSubclassOf<AChatPlayer> Class)
 {
 	FString name = Author.Name;
 	int64 id = FCString::Strtoi64(*Author.UserId, nullptr, 10);
@@ -30,69 +30,49 @@ AChatPlayer* AChatPlayer::GetFromAuthor(FTwitchMessageAuthor Author)
 		return nullptr;
 	}
 
-	return FindOrCreate(id, name);
+	return FindOrCreate(WorldContextObject, id, name, Class);
 }
 
-AChatPlayer* AChatPlayer::FindOrCreate(int64 Id, FString Name)
+AChatPlayer* AChatPlayer::FindOrCreate(UObject* WorldContextObject, int64 ID, FString Name, TSubclassOf<AChatPlayer> Class)
 {
-	if (!EnsureTable())
+	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActor<AChatPlayer>(Class);
+	ChatPlayer->ID = ID;
+	ChatPlayer->Name = Name;
+	if (ChatPlayer->ReloadData())
 	{
-		return nullptr;
-	}
-
-	auto SqliteConnection = USqliteConnection::OpenDefault();
-	if (!SqliteConnection.IsValid())
-	{
-		return nullptr;
-	}
-
-	{
-		auto Insert = SqliteConnection->Prepare(TEXT(R"(INSERT OR IGNORE INTO "User" (Id, Name) VALUES (?, ?))"));
-		if (!Insert.IsValid())
-		{
-			return nullptr;
-		}
-
-		if (!Insert.Bind(1, Id) ||
-			!Insert.Bind(2, Name))
-		{
-			return nullptr;
-		}
-
-		if (Insert.Step() != ESqliteStepResult::Done)
-		{
-			return nullptr;
-		}
-	}
-
-	{
-		auto Select = SqliteConnection->Prepare(TEXT(R"(SELECT Id, Name, Caterium, Prestige FROM "User" WHERE Id = ?)"));
-		if (!Select.IsValid())
-		{
-			return nullptr;
-		}
-
-		if (!Select.Bind(1, Id))
-		{
-			return nullptr;
-		}
-
-		if (Select.Step() != ESqliteStepResult::Data)
-		{
-			return nullptr;
-		}
-
-		AChatPlayer* ChatPlayer = NewObject<AChatPlayer>();
-		Select.AssignNextRowToObject(ChatPlayer);
 		return ChatPlayer;
 	}
 
-    return nullptr;
+	// Ensure player exists
+	auto Insert = USqliteConnection::PrepareSimple(TEXT(R"(INSERT INTO "User" (Id, Name) VALUES (?, ?))"));
+	if (!Insert.IsValid() ||
+		!Insert.Bind(1, ID) ||
+		!Insert.Bind(2, Name) ||
+		Insert.Step() != ESqliteStepResult::Done)
+	{
+		return nullptr;
+	}
+
+	return ChatPlayer;
 }
 
-bool AChatPlayer::RefreshStats()
+bool AChatPlayer::ReloadData()
 {
-	return false;
+	if (!EnsureTable())
+	{
+		return false;
+	}
+
+	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id, Name, Caterium, Prestige FROM "User" WHERE Id = ?)"));
+	if (!Select.IsValid() ||
+		!Select.Bind(1, ID) ||
+		Select.Step() != ESqliteStepResult::Data)
+	{
+		return false;
+	}
+
+	Select.AssignNextRowToObject(this);
+	return true;
 }
 
 void AChatPlayer::AddCaterium(int32 Delta)

@@ -21,6 +21,13 @@ FTemporarySqliteConnection::~FTemporarySqliteConnection()
 	}
 }
 
+USqliteConnection* FTemporarySqliteConnection::Release()
+{
+	USqliteConnection* connection = Connection;
+	Connection = nullptr;
+	return connection;
+}
+
 FSqliteStatement::FSqliteStatement(USqliteConnection* Connection, sqlite3_stmt* Statement)
 	: Connection(Connection)
 	, Statement(Statement)
@@ -54,7 +61,7 @@ bool FSqliteStatement::Bind(int Parameter, FString StringVal)
 {
 	check(Statement);
 	check(Parameter >= 1);
-	int rc = sqlite3_bind_text(Statement, Parameter, TCHAR_TO_ANSI(*StringVal), -1, nullptr);
+	int rc = sqlite3_bind_text(Statement, Parameter, TCHAR_TO_ANSI(*StringVal), -1, SQLITE_TRANSIENT);
 	if (rc != SQLITE_OK)
 	{
 		const char* error = sqlite3_errmsg(Connection->Database);
@@ -186,6 +193,11 @@ bool FSqliteStatement::AssignNextRowToObject(UObject* Object)
 	return true;
 }
 
+FSimpleSqliteStatement::FSimpleSqliteStatement(USqliteConnection* Connection, sqlite3_stmt* Statement)
+	: FTemporarySqliteConnection(Connection)
+	, FSqliteStatement(Connection, Statement)
+{}
+
 FTemporarySqliteConnection USqliteConnection::Open(FString DatabasePath)
 {
 	sqlite3* db;
@@ -206,6 +218,18 @@ FTemporarySqliteConnection USqliteConnection::Open(FString DatabasePath)
 FTemporarySqliteConnection USqliteConnection::OpenDefault()
 {
 	return USqliteConnection::Open(FPaths::ProjectContentDir() + kDatabasePath);
+}
+
+FSimpleSqliteStatement USqliteConnection::PrepareSimple(FString query)
+{
+	auto SqliteConnection = OpenDefault();
+	if (!SqliteConnection.IsValid())
+	{
+		return FSimpleSqliteStatement();
+	}
+
+	sqlite3_stmt* Statement = SqliteConnection->PrepareInternal(query);
+	return FSimpleSqliteStatement(SqliteConnection.Release(), Statement);
 }
 
 USqliteConnection::~USqliteConnection()
@@ -237,6 +261,11 @@ bool USqliteConnection::Execute(FString query)
 
 FSqliteStatement USqliteConnection::Prepare(FString Query)
 {
+	return FSqliteStatement(this, PrepareInternal(Query));
+}
+
+sqlite3_stmt* USqliteConnection::PrepareInternal(FString Query)
+{
 	check(Database);
 
 	sqlite3_stmt* Statement;
@@ -247,5 +276,5 @@ FSqliteStatement USqliteConnection::Prepare(FString Query)
 		UE_LOG(LogSqliteConnection, Error, TEXT("Failed to prepare query %s: %s"), *Query, ANSI_TO_TCHAR(error));
 	}
 
-	return FSqliteStatement(this, Statement);
+	return Statement;
 }

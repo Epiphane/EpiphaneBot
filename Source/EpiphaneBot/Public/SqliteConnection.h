@@ -26,6 +26,8 @@ public:
 	operator bool() const { return IsValid(); }
 	bool IsValid() const { return Connection != nullptr; }
 
+	USqliteConnection* Release();
+
 private:
 	UPROPERTY()
 	USqliteConnection* Connection;
@@ -79,7 +81,7 @@ public:
 	~FSqliteStatement();
 
 	operator bool() const { return IsValid(); }
-	bool IsValid() const { return Statement != nullptr; }
+	bool IsValid() const { return Connection != nullptr && Statement != nullptr; }
 
 public:
 	bool Bind(int Parameter, int64 IntVal);
@@ -97,6 +99,20 @@ private:
 };
 
 /**
+ *
+ */
+USTRUCT()
+struct FSimpleSqliteStatement : public FTemporarySqliteConnection, public FSqliteStatement
+{
+	GENERATED_BODY()
+
+public:
+	FSimpleSqliteStatement(USqliteConnection* Connection = nullptr, sqlite3_stmt* Statement = nullptr);
+
+	bool IsValid() const { return FTemporarySqliteConnection::IsValid() && FSqliteStatement::IsValid(); }
+};
+
+/**
  * 
  */
 UCLASS()
@@ -107,6 +123,7 @@ class EPIPHANEBOT_API USqliteConnection : public UObject
 public:
 	static [[nodiscard]] FTemporarySqliteConnection Open(FString DatabasePath);
 	static [[nodiscard]] FTemporarySqliteConnection OpenDefault();
+	static [[nodiscard]] FSimpleSqliteStatement PrepareSimple(FString query);
 
 	~USqliteConnection();
 	void Close();
@@ -114,6 +131,9 @@ public:
 public:
 	bool Execute(FString query);
 	FSqliteStatement [[nodiscard]] Prepare(FString query);
+
+private:
+	sqlite3_stmt* PrepareInternal(FString query);
 
 private:
 	friend struct FSqliteStatement;
