@@ -22,6 +22,7 @@ bool URaidParticipantComponent::EnsureTable()
 		"UserId"		INTEGER NOT NULL,
 		"Investment"	INTEGER NOT NULL,
 		"Health"		INTEGER NOT NULL DEFAULT 100,
+		"Winnings"		INTEGER NOT NULL DEFAULT 0,
 		FOREIGN KEY		("UserId") REFERENCES "User"("Id"),
 		FOREIGN KEY		("RaidId") REFERENCES "Raid"("Id")
 	))");
@@ -29,6 +30,8 @@ bool URaidParticipantComponent::EnsureTable()
 
 void URaidParticipantComponent::BeginPlay()
 {
+	Super::BeginPlay();
+
 	if (!ensureAlways(Raid))
 	{
 		return;
@@ -51,6 +54,8 @@ void URaidParticipantComponent::BeginPlay()
 	{
 		return;
 	}
+
+	Player->LockCaterium(Investment);
 }
 
 void URaidParticipantComponent::SetInvestment(int32 NewInvestment)
@@ -73,7 +78,9 @@ void URaidParticipantComponent::SetInvestment(int32 NewInvestment)
 		return;
 	}
 
+	Player->LockCaterium(-Investment);
 	Investment = NewInvestment;
+	Player->LockCaterium(Investment);
 }
 
 void URaidParticipantComponent::SetHealth(int32 NewHealth)
@@ -97,4 +104,27 @@ void URaidParticipantComponent::SetHealth(int32 NewHealth)
 	}
 
 	Health = NewHealth;
+}
+
+void URaidParticipantComponent::SetWinnings(int32 NewWinnings)
+{
+	if (!ensureAlways(Raid))
+	{
+		return;
+	}
+
+	AChatPlayer* Player = GetOwner<AChatPlayer>();
+	check(Player);
+
+	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "RaidParticipant" SET Winnings = ? WHERE RaidId = ? AND UserId = ?)"));
+	if (!Update.IsValid() ||
+		!Update.Bind(1, NewWinnings) ||
+		!Update.Bind(2, Raid->ID) ||
+		!Update.Bind(3, Player->ID) ||
+		Update.Step() != ESqliteStepResult::Done)
+	{
+		return;
+	}
+
+	Winnings = NewWinnings;
 }

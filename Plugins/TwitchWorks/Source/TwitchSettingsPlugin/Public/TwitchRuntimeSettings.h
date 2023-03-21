@@ -22,7 +22,7 @@ struct FTwitchCommandParameter
 
 	// The parameter's delimiter (the character to be hit before it should go to the next command, eg. <space>, |, etc.)
 	UPROPERTY(EditAnywhere, Category="TwitchWorks", BlueprintReadWrite)
-	FString ParameterDelimiter;
+	FString ParameterDelimiter = TEXT(" ");
 };
 
 USTRUCT(BlueprintType)

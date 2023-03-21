@@ -9,6 +9,8 @@
 
 DECLARE_DYNAMIC_DELEGATE(FOnRaidEventCompleteDelegate);
 
+class ARaid;
+
 UCLASS(Abstract, Blueprintable)
 class EPIPHANEBOT_API URaidEvent : public UObject
 {
@@ -21,10 +23,19 @@ public:
 public:
 
 	UFUNCTION(BlueprintNativeEvent)
-	bool CanRunEvent(ARaid* Raid);
+	bool CanRunEvent();
 
 	UFUNCTION(BlueprintNativeEvent)
-	void RunEvent(ARaid* Raid);
+	void RunEvent();
+
+	UFUNCTION(BlueprintCallable)
+	void AddWinnings(int64 Amount);
+
+	UFUNCTION(BlueprintCallable)
+	bool SendTwitchMessage(FText Message);
+
+	UFUNCTION(BlueprintCallable)
+	void MarkComplete();
 
 public:
 	UPROPERTY(EditDefaultsOnly)
@@ -35,4 +46,7 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	UTwitchChatConnector* Chat;
+
+	UPROPERTY(BlueprintReadOnly)
+	ARaid* Raid;
 };

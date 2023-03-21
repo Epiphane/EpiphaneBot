@@ -21,20 +21,29 @@ public:
 public:
 	void BeginPlay() override;
 
+	UFUNCTION(BlueprintCallable)
+	FString GetName() const { return GetOwner<AChatPlayer>()->Name; }
+
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	int32 GetInvestment() { return Investment; }
+	int32 GetInvestment() const { return Investment; }
 
 	UFUNCTION(BlueprintCallable)
 	void SetInvestment(int32 NewInvestment);
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	int32 GetHealth() { return Health; }
+	int32 GetHealth() const { return Health; }
 
 	UFUNCTION(BlueprintCallable)
 	void SetHealth(int32 NewHealth);
 
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	int32 GetWinnings() const { return Winnings; }
+
 	UFUNCTION(BlueprintCallable)
-	bool IsAlive() { return Health > 0; }
+	void SetWinnings(int32 NewWinnings);
+
+	UFUNCTION(BlueprintCallable)
+	bool IsAlive() const { return Health > 0; }
 
 	UFUNCTION(BlueprintCallable)
 	void Kill() { SetHealth(0); }
@@ -45,6 +54,10 @@ public:
 	UPROPERTY(BlueprintGetter = GetInvestment, BlueprintSetter = SetInvestment)
 	int32 Investment = 0;
 
+private:
 	UPROPERTY(BlueprintGetter = GetHealth, BlueprintSetter = SetHealth)
 	int32 Health = 100;
+
+	UPROPERTY(BlueprintGetter = GetWinnings, BlueprintSetter = SetWinnings)
+	int32 Winnings = 0;
 };

@@ -35,7 +35,7 @@ public:
 	* @return true if the message was successfully sent, false otherwise.
 	*/
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Send Twitch Message", Keywords = "Twitch TwitchWorks TwitchPlugin Livestream Livestreaming TwitchGame"), Category = "TwitchWorks")
-	static bool SendTwitchMessage(UTwitchChatConnector *Chat, FText Message);
+	static TWITCHPLUGIN_API bool SendTwitchMessage(UTwitchChatConnector *Chat, FText Message);
 
 	/**
 	* Permanently bans a twitch user.

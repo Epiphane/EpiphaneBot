@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Raid.h"
+#include "TwitchPluginBPLibrary.h"
 #include "SqliteConnection.h"
 
 DEFINE_LOG_CATEGORY(LogRaid);
@@ -79,6 +80,7 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TAr
 	{
 		URaidEvent* Event = NewObject<URaidEvent>(RaidObject, EventClass);
 		Event->Chat = Chat;
+		Event->Raid = RaidObject;
 		Event->OnComplete.BindDynamic(RaidObject, &ARaid::OnRaidEventComplete);
 		RaidObject->AvailableEvents.Add(Event);
 	}
@@ -107,10 +109,14 @@ void ARaid::BeginRaid_Implementation()
 {
 	State = ERaidState::Running;
 	Investment = 0;
+	MaxInvestment = 0;
 	for (const auto& participant : Participants)
 	{
-		Investment += participant->GetInvestment();
+		int64 investment = participant->GetInvestment();
+		Investment += investment;
+		MaxInvestment = FMath::Max(investment, MaxInvestment);
 	}
+	AverageInvestment = Investment / Participants.Num();
 
 	auto Insert = USqliteConnection::PrepareSimple(TEXT(R"(Update "Raid" SET Investment = ? WHERE Id = ?)"));
 	if (!Insert.IsValid() ||
@@ -125,7 +131,7 @@ void ARaid::BeginRaid_Implementation()
 
 void ARaid::RunNextEvent()
 {
-	TArray<URaidEvent*> PossibleEvents = AvailableEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->CanRunEvent(this); });
+	TArray<URaidEvent*> PossibleEvents = AvailableEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->CanRunEvent(); });
 	int32 MaxRarity = 0;
 	int32 TotalWeight = 0;
 	for (const auto& Event : PossibleEvents)
@@ -151,16 +157,59 @@ void ARaid::RunNextEvent()
 		++SelectedIndex;
 		Selection -= (MaxRarity - PossibleEvents[SelectedIndex]->Rarity);
 	} while (Selection > 0);
-	PossibleEvents[SelectedIndex]->RunEvent(this);
+	PossibleEvents[SelectedIndex]->RunEvent();
 }
 
 void ARaid::OnRaidEventComplete_Implementation()
 {
 }
 
+bool ARaid::SendTwitchMessage(FText Message)
+{
+	return UTwitchPluginBPLibrary::SendTwitchMessage(Chat, Message);
+}
+
+void ARaid::AddWinnings(int64 amount)
+{
+	Winnings += amount;
+}
+
 void ARaid::Complete_Implementation()
 {
 	State = ERaidState::Done;
+	
+	int64 LivingInvestment = 0;
+	for (URaidParticipantComponent* Participant : Participants)
+	{
+		AChatPlayer* Player = CastChecked<AChatPlayer>(Participant->GetOwner());
+		if (Participant->IsAlive())
+		{
+			LivingInvestment += Participant->GetInvestment();
+		}
+		else
+		{
+			Player->ForefeitLockedCaterium();
+		}
+		Player->UnlockCaterium();
+	}
+
+	for (URaidParticipantComponent* Participant : Participants)
+	{
+		AChatPlayer* Player = CastChecked<AChatPlayer>(Participant->GetOwner());
+		if (Participant->IsAlive())
+		{
+			double Claim = (double)Participant->Investment / LivingInvestment;
+			int64 PlayerWinnings = FMath::CeilToInt(Claim * Winnings);
+			Participant->SetWinnings(PlayerWinnings);
+			Player->AddCaterium(PlayerWinnings);
+		}
+		else
+		{
+			Player->AddCaterium(-Player->LockedCaterium);
+		}
+		Player->UnlockCaterium();
+	}
+
 	OnComplete.Broadcast(this);
 	GetWorld()->DestroyActor(this);
 }

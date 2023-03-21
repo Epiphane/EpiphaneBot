@@ -56,7 +56,7 @@ public:
 	UFUNCTION(BlueprintNativeEvent)
 	void BeginPreparing();
 
-	UFUNCTION(BlueprintNativeEvent)
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void BeginRaid();
 
 	UFUNCTION(BlueprintCallable)
@@ -67,6 +67,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void Complete();
+
+	UFUNCTION(BlueprintCallable)
+	bool SendTwitchMessage(FText Message);
+
+	UFUNCTION(BlueprintCallable)
+	void AddWinnings(int64 Amount);
 
 	UFUNCTION(BlueprintCallable)
 	bool IsInProgress() const;
@@ -106,11 +112,17 @@ public:
 	UPROPERTY()
 	int64 ID;
 
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int64 Investment;
 
-	UPROPERTY(BlueprintReadWrite)
-	int64 Return;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int64 AverageInvestment;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int64 MaxInvestment;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	int64 Winnings;
 
 	UPROPERTY()
 	ERaidState State;
