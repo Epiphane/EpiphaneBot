@@ -113,13 +113,13 @@ public:
 	int64 ID;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int64 Investment;
+	int Investment;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int64 AverageInvestment;
+	int AverageInvestment;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int64 MaxInvestment;
+	int MaxInvestment;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	int64 Winnings;

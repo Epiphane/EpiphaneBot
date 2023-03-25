@@ -29,7 +29,7 @@ public:
 	void RunEvent();
 
 	UFUNCTION(BlueprintCallable)
-	void AddWinnings(int64 Amount);
+	void AddWinnings(float Amount);
 
 	UFUNCTION(BlueprintCallable)
 	bool SendTwitchMessage(FText Message);

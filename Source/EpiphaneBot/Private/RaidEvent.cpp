@@ -19,9 +19,9 @@ void URaidEvent::RunEvent_Implementation()
     MarkComplete();
 }
 
-void URaidEvent::AddWinnings(int64 Amount)
+void URaidEvent::AddWinnings(float Amount)
 {
-    Raid->AddWinnings(Amount);
+    Raid->AddWinnings(FMath::CeilToInt64(Amount));
 }
 
 bool URaidEvent::SendTwitchMessage(FText Message)

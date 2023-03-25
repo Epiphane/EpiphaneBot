@@ -112,7 +112,7 @@ void ARaid::BeginRaid_Implementation()
 	MaxInvestment = 0;
 	for (const auto& participant : Participants)
 	{
-		int64 investment = participant->GetInvestment();
+		int investment = participant->GetInvestment();
 		Investment += investment;
 		MaxInvestment = FMath::Max(investment, MaxInvestment);
 	}
@@ -156,7 +156,7 @@ void ARaid::RunNextEvent()
 	{
 		++SelectedIndex;
 		Selection -= (MaxRarity - PossibleEvents[SelectedIndex]->Rarity);
-	} while (Selection > 0);
+	} while (Selection >= 0);
 	PossibleEvents[SelectedIndex]->RunEvent();
 }
 
