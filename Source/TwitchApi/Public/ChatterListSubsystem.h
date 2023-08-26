@@ -3,11 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TwitchGetChatters.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "ChatterListSubsystem.generated.h"
 
 class UTwitchEventsSubsystem;
-class UTwitchGetChatters;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnChatterDelegate, FChatter, User);
 
 /**
  * 
@@ -30,10 +32,20 @@ public:
 	void OnTimerActivate();
 
 	UFUNCTION()
-	void OnQuerySuccess(const TArray<FString>& Viewers);
+	void OnQuerySuccess(const TArray<FChatter>& Viewers);
 
 	UFUNCTION()
-	void OnQueryFail(const TArray<FString>& Viewers);
+	void OnQueryFail(const TArray<FChatter>& Viewers);
+
+	FOnChatterDelegate& GetOnChatterJoined() { return OnChatterJoined; }
+	FOnChatterDelegate& GetOnChatterLeft() { return OnChatterLeft; }
+
+private:
+	UPROPERTY(BlueprintAssignable)
+	FOnChatterDelegate OnChatterJoined;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnChatterDelegate OnChatterLeft;
 
 private:
 	UPROPERTY()
@@ -46,5 +58,5 @@ private:
 	FTimerHandle PollTimer;
 
 	UPROPERTY()
-	TArray<FString> ChatterIds;
+	TSet<FChatter> ActiveChatters;
 };

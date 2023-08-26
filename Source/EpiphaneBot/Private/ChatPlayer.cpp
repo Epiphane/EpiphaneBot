@@ -34,6 +34,19 @@ AChatPlayer* AChatPlayer::GetFromAuthor(UObject* WorldContextObject, FTwitchMess
 	return FindOrCreate(WorldContextObject, id, name, Class);
 }
 
+bool AChatPlayer::Exists(int64 Id)
+{
+	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id FROM "User" WHERE Id = ?)"));
+	if (!Select.IsValid() ||
+		!Select.Bind(1, Id) ||
+		Select.Step() != ESqliteStepResult::Data)
+	{
+		return false;
+	}
+
+	return true;
+}
+
 AChatPlayer* AChatPlayer::Find(UObject* WorldContextObject, FString Name, TSubclassOf<AChatPlayer> Class)
 {
 	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id FROM "User" WHERE Name = ?)"));

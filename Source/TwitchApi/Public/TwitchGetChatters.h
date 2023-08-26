@@ -30,10 +30,32 @@ struct TWITCHAPI_API FGetChattersResponse
 	TArray<FGetChattersResponseData> data;
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTwitchGetChattersDelegate, const TArray<FString>&, Viewers);
+USTRUCT(Blueprintable)
+struct TWITCHAPI_API FChatter
+{
+	GENERATED_BODY()
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	int64 UserId;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	FString UserName;
+};
+
+inline bool operator==(const FChatter& Lhs, const FChatter& Rhs)
+{
+	return Lhs.UserId == Rhs.UserId;
+}
+
+inline uint32 GetTypeHash(const FChatter& Chatter)
+{
+	return GetTypeHash(Chatter.UserId);
+}
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FTwitchGetChattersDelegate, const TArray<FChatter>&, Chatters);
 
 /**
- * Task class for getting the current chatters/logged in viewers of a channel.
+ * Task class for getting the current chatters of a channel.
  */
 UCLASS()
 class TWITCHAPI_API UTwitchGetChatters : public UBlueprintAsyncActionBase
@@ -44,7 +66,7 @@ public:
 	/**
 	* Gets all logged in chatters.
 	*
-	* @return The usernames of all chatters/logged in viewers of the given channel
+	* @return All chatters of the given channel
 	*/
 	UFUNCTION(BlueprintCallable, meta = (BlueprintInternalUseOnly = "true", WorldContext = "WorldContextObject"))
 	static UTwitchGetChatters* GetChatters(const UObject* worldContextObject);

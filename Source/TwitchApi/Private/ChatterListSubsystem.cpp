@@ -1,9 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "TwitchPubSubConnection.h"
-#include "TwitchGetChatters.h"
 #include "ChatterListSubsystem.h"
+#include "TwitchPubSubConnection.h"
 
 void UChatterListSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
@@ -18,7 +17,7 @@ void UChatterListSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 
 void UChatterListSubsystem::OnConnected(FString Channel)
 {
-    GetWorld()->GetTimerManager().SetTimer(PollTimer, this, &UChatterListSubsystem::OnTimerActivate, 10.0f, true);
+    GetWorld()->GetTimerManager().SetTimer(PollTimer, this, &UChatterListSubsystem::OnTimerActivate, 10.0f, true, 0.0f);
 }
 
 void UChatterListSubsystem::OnDisconnected()
@@ -31,13 +30,36 @@ void UChatterListSubsystem::OnTimerActivate()
     QueryTask->MakeRequest(Events->GetCredentials());
 }
 
-void UChatterListSubsystem::OnQuerySuccess(const TArray<FString>& Viewers)
+void UChatterListSubsystem::OnQuerySuccess(const TArray<FChatter>& Chatters)
 {
-    FString joined = FString::Join(Viewers, TEXT(" | "));
-    UE_LOG(LogTemp, Log, TEXT("Chatters: %s"), *joined);
+    TSet<FChatter> NewChatters;
+    TSet<FChatter> PrevChatters = ActiveChatters;
+    ActiveChatters.Empty(ActiveChatters.Num());
+    for (const FChatter& Chatter : Chatters)
+    {
+        if (PrevChatters.Contains(Chatter))
+        {
+            PrevChatters.Remove(Chatter);
+        }
+        else
+        {
+            NewChatters.Add(Chatter);
+        }
+        ActiveChatters.Add(Chatter);
+    }
+
+    for (const FChatter& Chatter : NewChatters)
+    {
+        OnChatterJoined.Broadcast(Chatter);
+    }
+
+    for (const FChatter& Chatter : PrevChatters)
+    {
+        OnChatterLeft.Broadcast(Chatter);
+    }
 }
 
-void UChatterListSubsystem::OnQueryFail(const TArray<FString>& Viewers)
+void UChatterListSubsystem::OnQueryFail(const TArray<FChatter>& Viewers)
 {
     UE_LOG(LogTemp, Error, TEXT("Failed to get chatters"));
 }

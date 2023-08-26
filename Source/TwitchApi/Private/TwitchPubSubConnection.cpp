@@ -98,6 +98,7 @@ void UTwitchEventsSubsystem::HandleHTTPRequest(FHttpRequestPtr HttpRequest, FHtt
 void UTwitchEventsSubsystem::OnClosed(int32 StatusCode, const FString& Reason, bool bWasClean)
 {
     UE_LOG(LogTwitchEventSubsystem, Log, TEXT("Connection Closed"));
+    OnDisconnected.Broadcast();
 }
 
 void UTwitchEventsSubsystem::OnMessage(const FString& Message)
@@ -132,6 +133,7 @@ void UTwitchEventsSubsystem::OnMessage(const FString& Message)
 
         SessionID = Session.session.id;
         SubscribeToEvents();
+        OnConnected.Broadcast(Credentials.Username);
     }
     else if (Metadata.message_type == ETwitchEventMessageType::session_keepalive)
     {

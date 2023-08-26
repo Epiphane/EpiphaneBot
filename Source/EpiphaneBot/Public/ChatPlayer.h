@@ -24,6 +24,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (DisplayName = "Get Chat Player", AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
 	static AChatPlayer* GetFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, TSubclassOf<AChatPlayer> Class);
 
+	UFUNCTION(BlueprintCallable, Category = "Chat Player")
+	static bool Exists(int64 Id);
+
 	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
 	static AChatPlayer* Find(UObject* WorldContextObject, FString Name, TSubclassOf<AChatPlayer> Class);
 

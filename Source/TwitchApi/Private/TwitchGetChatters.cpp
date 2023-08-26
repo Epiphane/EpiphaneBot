@@ -50,13 +50,13 @@ void UTwitchGetChatters::HandleHTTPRequest(FHttpRequestPtr HttpRequest, FHttpRes
 
 		AsyncTask(ENamedThreads::GameThread, [=]()
 		{
-			OnFail.Broadcast(TArray<FString>());
+			OnFail.Broadcast(TArray<FChatter>());
 		});
 		return;
 	}
 
 	// Variable to store the channels' viewer's usernames in.
-	TArray<FString> Viewers;
+	TArray<FChatter> Chatters;
 
 	// Turn the HTTP response's json string into a JSON object.
 	FGetChattersResponse Response;
@@ -65,13 +65,13 @@ void UTwitchGetChatters::HandleHTTPRequest(FHttpRequestPtr HttpRequest, FHttpRes
 		// Outer loop - iterates over the various "types" of chatters
 		for (auto& Entry : Response.data)
 		{
-			Viewers.Add(Entry.user_id);
+			Chatters.Add(FChatter{ FCString::Strtoi64(*Entry.user_id, nullptr, 10), Entry.user_name });
 		}
 	}
 
 	// Successfully retrieved all chatter usernames/viewers - execute success!
 	AsyncTask(ENamedThreads::GameThread, [=]()
 	{
-		OnSuccess.Broadcast(Viewers);
+		OnSuccess.Broadcast(Chatters);
 	});
 }
