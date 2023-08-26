@@ -12,6 +12,7 @@ public class EpiphaneBot : ModuleRules
             "Core",
             "CoreUObject",
             "Engine",
+            "HTTP",
             "InputCore",
             "TwitchApi",
             "TwitchPlugin",

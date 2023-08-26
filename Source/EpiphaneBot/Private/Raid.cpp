@@ -44,7 +44,7 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TAr
 		return nullptr;
 	}
 
-	FSQLiteValue* Id;
+	int64 Id;
 	{
 		auto Insert = USqliteConnection::PrepareSimple(TEXT(R"(INSERT INTO "Raid" (Time) VALUES (datetime('now')) RETURNING Id)"));
 		if (!Insert.IsValid() ||
@@ -54,21 +54,23 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TAr
 		}
 
 		TMap<FString, FSQLiteValue> Properties = Insert.ReadRow();
-		Id = Properties.Find("Id");
-		if (Id == nullptr)
+		FSQLiteValue* IdValue = Properties.Find("Id");
+		if (IdValue == nullptr)
 		{
 			return nullptr;
 		}
 
-		if (Id->Type != ESqliteValueType::Integer)
+		if (IdValue->Type != ESqliteValueType::Integer)
 		{
 			return nullptr;
 		}
+
+		Id = IdValue->IntValue;
 	}
 
 	ARaid* RaidObject = worldContext->SpawnActor<ARaid>(RaidClass);
 	check(RaidObject != nullptr);
-	RaidObject->ID = Id->IntValue;
+	RaidObject->ID = Id;
 	RaidObject->Chat = Chat;
 	if (!RaidObject->ReloadData())
 	{

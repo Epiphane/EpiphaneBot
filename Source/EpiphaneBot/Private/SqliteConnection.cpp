@@ -200,12 +200,21 @@ FSimpleSqliteStatement::FSimpleSqliteStatement(USqliteConnection* Connection, sq
 
 FTemporarySqliteConnection USqliteConnection::Open(FString DatabasePath)
 {
+	FString dbPath = FPaths::ConvertRelativePathToFull(DatabasePath);
+	FString basePath = FPaths::GetPath(DatabasePath);
+
+	if (!ensure(FPlatformFileManager::Get().GetPlatformFile().CreateDirectoryTree(*basePath)))
+	{
+		UE_LOG(LogSqliteConnection, Error, TEXT("Failed to create directory %s"), *basePath);
+		return FTemporarySqliteConnection(nullptr);
+	}
+
 	sqlite3* db;
-	int rc = sqlite3_open(TCHAR_TO_ANSI(*DatabasePath), &db);
+	int rc = sqlite3_open(TCHAR_TO_ANSI(*dbPath), &db);
 	if (rc != SQLITE_OK)
 	{
 		const char* error = sqlite3_errmsg(db);
-		UE_LOG(LogSqliteConnection, Error, TEXT("Failed to open database connection: %s"), ANSI_TO_TCHAR(error));
+		UE_LOG(LogSqliteConnection, Error, TEXT("Failed to open database connection (path: %s: %s"), *dbPath, ANSI_TO_TCHAR(error));
 		return FTemporarySqliteConnection(nullptr);
 	}
 
@@ -217,7 +226,7 @@ FTemporarySqliteConnection USqliteConnection::Open(FString DatabasePath)
 
 FTemporarySqliteConnection USqliteConnection::OpenDefault()
 {
-	return USqliteConnection::Open(FPaths::ProjectContentDir() + kDatabasePath);
+	return USqliteConnection::Open(FPaths::ProjectSavedDir() + kDatabasePath);
 }
 
 FSimpleSqliteStatement USqliteConnection::PrepareSimple(FString query)

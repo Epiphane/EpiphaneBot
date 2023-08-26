@@ -37,7 +37,7 @@ void UGetChannelViewers::CreateHTTPRequest(FString ChannelName)
 	HttpRequest->SetHeader(TEXT("Accept"), TEXT("application/json"));
 
 	// Get the chatters (-> people connected to the chat / closest available way to get usernames of all viewers)
-	HttpRequest->SetURL(FString::Printf(TEXT("http://tmi.twitch.tv/group/user/%s/chatters"), *ChannelName));
+	HttpRequest->SetURL(FString::Printf(TEXT("https://api.twitch.tv/helix/chat/chatters?broadcaster_id=%s"), *ChannelName));
 
 	// Bind the HandleHTTPRequest function to the request complete delegate and execute the HTTP request
 	HttpRequest->OnProcessRequestComplete().BindUObject(this, &UGetChannelViewers::HandleHTTPRequest);

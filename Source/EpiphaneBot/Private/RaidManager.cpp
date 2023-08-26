@@ -19,6 +19,8 @@ void URaidManager::Initialize(FSubsystemCollectionBase& Collection)
     ContentPaths.Add(TEXT("/Game"));
     AssetRegistry.ScanPathsSynchronous(ContentPaths);
 
+    UE_LOG(LogTemp, Log, TEXT("Getting all raid events"));
+
     FName BaseClassName = URaidEvent::StaticClass()->GetFName();
 
     // Use the asset registry to get the set of all class names deriving from Base
@@ -31,6 +33,12 @@ void URaidManager::Initialize(FSubsystemCollectionBase& Collection)
         AssetRegistry.GetDerivedClassNames(BaseNames, Excluded, DerivedNames);
     }
 
+    UE_LOG(LogTemp, Log, TEXT("Derived names:"));
+    for (const auto& name : DerivedNames)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Name: %s"), *name.ToString());
+    }
+
     FARFilter Filter;
     Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
     Filter.bRecursiveClasses = true;
@@ -38,6 +46,8 @@ void URaidManager::Initialize(FSubsystemCollectionBase& Collection)
 
     TArray<FAssetData> AssetList;
     AssetRegistry.GetAssets(Filter, AssetList);
+
+    UE_LOG(LogTemp, Log, TEXT("Found %d assets:"), AssetList.Num());
 
     // Iterate over retrieved blueprint assets
     for (auto const& Asset : AssetList)
@@ -56,7 +66,10 @@ void URaidManager::Initialize(FSubsystemCollectionBase& Collection)
             }
 
             // Store using the path to the generated class
-            AvailableEvents.Add(TSoftObjectPtr<UClass>(FStringAssetReference(ClassObjectPath)).LoadSynchronous());
+            UE_LOG(LogTemp, Log, TEXT("Loading %s"), *ClassObjectPath);
+            UClass* cls = TSoftObjectPtr<UClass>(FStringAssetReference(ClassObjectPath)).LoadSynchronous();
+            AvailableEvents.Add(cls);
+            UE_LOG(LogTemp, Log, TEXT("=> %x"), cls);
         }
     }
 }
@@ -91,8 +104,11 @@ ARaid* URaidManager::StartRaid(TSubclassOf<ARaid> RaidClass)
     check(CurrentRaid == nullptr);
 
     CurrentRaid = ARaid::CreateRaid(GetWorld(), RaidClass, AvailableEvents, Chat);
-    CurrentRaid->GetOnRaidCompleteDelegate().AddDynamic(this, &URaidManager::OnRaidDone);
-    CurrentRaid->BeginPreparing();
+    if (ensure(CurrentRaid))
+    {
+        CurrentRaid->GetOnRaidCompleteDelegate().AddDynamic(this, &URaidManager::OnRaidDone);
+        CurrentRaid->BeginPreparing();
+    }
     return CurrentRaid;
 }
 

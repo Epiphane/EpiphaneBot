@@ -73,5 +73,6 @@ private:
 
 	int64 RaidEventPoolSize = 0;
 
+	UPROPERTY()
 	TArray<TSubclassOf<URaidEvent>> AvailableEvents;
 };
