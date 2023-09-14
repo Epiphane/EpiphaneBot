@@ -43,7 +43,7 @@ private:
 	ARaid();
 
 public:
-	static ARaid* CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TArray<TSubclassOf<URaidEvent>> AvailableEvents, UTwitchChatConnector* Chat);
+	static ARaid* CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TArray<TSubclassOf<ARaidEvent>> AvailableEvents, UTwitchChatConnector* Chat);
 
 protected:
 	// Called when the game starts or when spawned
@@ -140,7 +140,7 @@ public:
 	TMap<int32, URaidParticipantComponent*> ParticipantMap;
 
 	UPROPERTY()
-	TArray<URaidEvent*> AvailableEvents;
+	TArray<ARaidEvent*> AvailableEvents;
 
 	UPROPERTY(BlueprintReadOnly)
 	UTwitchChatConnector* Chat;

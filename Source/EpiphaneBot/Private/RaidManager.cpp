@@ -21,7 +21,7 @@ void URaidManager::Initialize(FSubsystemCollectionBase& Collection)
 
     UE_LOG(LogTemp, Log, TEXT("Getting all raid events"));
 
-    FName BaseClassName = URaidEvent::StaticClass()->GetFName();
+    FName BaseClassName = ARaidEvent::StaticClass()->GetFName();
 
     // Use the asset registry to get the set of all class names deriving from Base
     TSet<FName> DerivedNames;
@@ -40,7 +40,7 @@ void URaidManager::Initialize(FSubsystemCollectionBase& Collection)
     }
 
     FARFilter Filter;
-    Filter.ClassNames.Add(UBlueprint::StaticClass()->GetFName());
+    Filter.ClassPaths.Add(UBlueprint::StaticClass()->GetStructPathName());
     Filter.bRecursiveClasses = true;
     Filter.bRecursivePaths = true;
 

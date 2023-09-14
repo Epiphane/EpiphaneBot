@@ -10,7 +10,7 @@
 	"DocsURL": "https://docs.google.com/document/d/1zPvmQbD9uXHutyJwnAaZmIJ-qXMp0KwpiEuOgzlcCXY/edit?usp=sharing",
 	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/50ad7661b7274a408034fc4ad7e4aa82",
 	"SupportURL": "mailto:howtocompute123@gmail.com",
-	"EngineVersion": "5.0.0",
+	"EngineVersion": "5.2.0",
 	"CanContainContent": true,
 	"Installed": true,
 	"Modules": [

@@ -89,7 +89,13 @@ public:
 	
 	ESqliteStepResult Step();
 	TMap<FString, FSQLiteValue> ReadRow();
-	bool AssignNextRowToObject(UObject* Object);
+	bool AssignNextRowToObject(const UStruct* Class, void* Object);
+
+	template<typename Struct>
+	bool AssignNextRowToObject(Struct* Object)
+	{
+		return AssignNextRowToObject(Struct::StaticStruct(), Object);
+	}
 
 private:
 	UPROPERTY()

@@ -32,7 +32,7 @@ ARaid::ARaid()
 
 }
 
-ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TArray<TSubclassOf<URaidEvent>> AvailableEvents, UTwitchChatConnector* Chat)
+ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TArray<TSubclassOf<ARaidEvent>> AvailableEvents, UTwitchChatConnector* Chat)
 {
 	if (!ensure(RaidClass))
 	{
@@ -80,7 +80,8 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TAr
 
 	for (const auto& EventClass : AvailableEvents)
 	{
-		URaidEvent* Event = NewObject<URaidEvent>(RaidObject, EventClass);
+		ARaidEvent* Event = worldContext->SpawnActor<ARaidEvent>(EventClass);
+		Event->SetOwner(RaidObject);
 		Event->Chat = Chat;
 		Event->Raid = RaidObject;
 		Event->OnComplete.BindDynamic(RaidObject, &ARaid::OnRaidEventComplete);
@@ -133,7 +134,7 @@ void ARaid::BeginRaid_Implementation()
 
 void ARaid::RunNextEvent()
 {
-	TArray<URaidEvent*> PossibleEvents = AvailableEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->CanRunEvent(); });
+	TArray<ARaidEvent*> PossibleEvents = AvailableEvents.FilterByPredicate([this](ARaidEvent* Event) { return Event->CanRunEvent(); });
 	int32 MaxRarity = 0;
 	int32 TotalWeight = 0;
 	for (const auto& Event : PossibleEvents)
@@ -203,13 +204,13 @@ void ARaid::Complete_Implementation()
 			double Claim = (double)Participant->Investment / LivingInvestment;
 			int64 PlayerWinnings = FMath::CeilToInt(Claim * Winnings);
 			Participant->SetWinnings(PlayerWinnings);
+			Player->UnlockCaterium();
 			Player->AddCaterium(PlayerWinnings);
 		}
 		else
 		{
-			Player->AddCaterium(-Player->LockedCaterium);
+			Player->ForefeitLockedCaterium();
 		}
-		Player->UnlockCaterium();
 	}
 
 	OnComplete.Broadcast(this);
@@ -252,7 +253,7 @@ void ARaid::IsJoinable(AChatPlayer* Player, EJoinableOutput& Result, URaidPartic
 	{
 		Result = EJoinableOutput::RaidNotJoinable;
 	}
-	else if (URaidParticipantComponent** Existing = ParticipantMap.Find(Player->ID); Existing)
+	else if (URaidParticipantComponent** Existing = ParticipantMap.Find(Player->Data.ID); Existing)
 	{
 		Result = EJoinableOutput::AlreadyParticipating;
 		Participant = *Existing;
@@ -293,7 +294,7 @@ void ARaid::Join(AChatPlayer* Player, int32 investment)
 	Participant->Investment = investment;
 	Participant->RegisterComponent();
 	Participants.Add(Participant);
-	ParticipantMap.Add(Player->ID, Participant);
+	ParticipantMap.Add(Player->Data.ID, Participant);
 }
 
 bool ARaid::ReloadData()
@@ -311,6 +312,6 @@ bool ARaid::ReloadData()
 		return false;
 	}
 
-	Select.AssignNextRowToObject(this);
+	Select.AssignNextRowToObject(GetClass(), this);
 	return true;
 }

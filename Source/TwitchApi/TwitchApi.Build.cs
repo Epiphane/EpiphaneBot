@@ -11,7 +11,6 @@ public class TwitchApi : ModuleRules
 			"HTTP",
             "Json",
             "JsonUtilities",
-			"Kismet",
 			"TwitchPlugin",
             "TwitchSettingsPlugin",
             "WebSockets",

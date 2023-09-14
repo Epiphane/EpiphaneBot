@@ -17,4 +17,7 @@ class EPIPHANEBOT_API URaidLocation : public UPrimaryDataAsset
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	FText Name;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<FString> AcceptedShorthands;
 };

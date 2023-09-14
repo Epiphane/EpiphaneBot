@@ -22,7 +22,7 @@ public:
 	void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable)
-	FString GetName() const { return GetOwner<AChatPlayer>()->Name; }
+	FString GetName() const { return GetOwner<AChatPlayer>()->Data.Name; }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	int32 GetInvestment() const { return Investment; }

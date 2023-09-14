@@ -48,18 +48,23 @@ void UChatterListSubsystem::OnQuerySuccess(const TArray<FChatter>& Chatters)
         ActiveChatters.Add(Chatter);
     }
 
-    for (const FChatter& Chatter : NewChatters)
-    {
-        OnChatterJoined.Broadcast(Chatter);
-    }
-
-    for (const FChatter& Chatter : PrevChatters)
-    {
-        OnChatterLeft.Broadcast(Chatter);
-    }
+    ProcessChanges(NewChatters, PrevChatters);
 }
 
 void UChatterListSubsystem::OnQueryFail(const TArray<FChatter>& Viewers)
 {
     UE_LOG(LogTemp, Error, TEXT("Failed to get chatters"));
+}
+
+void UChatterListSubsystem::ProcessChanges(const TSet<FChatter>& NewChatters, const TSet<FChatter>& LeftChatters)
+{
+    for (const FChatter& Chatter : NewChatters)
+    {
+        OnChatterJoined.Broadcast(Chatter);
+    }
+
+    for (const FChatter& Chatter : LeftChatters)
+    {
+        OnChatterLeft.Broadcast(Chatter);
+    }
 }

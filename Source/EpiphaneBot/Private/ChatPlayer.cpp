@@ -1,25 +1,21 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ChatPlayer.h"
-#include "SqliteConnection.h"
-#include "sqlite3.h"
+#include "EpiGameInstance.h"
+#include "Kismet/GameplayStatics.h"
 
-bool AChatPlayer::EnsureTable()
+AChatPlayer::AChatPlayer()
 {
-	auto SqliteConnection = USqliteConnection::OpenDefault();
-	if (!SqliteConnection.IsValid())
+	UWorld* World = GetWorld();
+	if (World)
 	{
-		return false;
+		UGameInstance* GameInstance = World->GetGameInstance();
+		if (GameInstance)
+		{
+			UserData = GameInstance->GetSubsystem<UEpiUserDataSubsystem>();
+			ensure(IsValid(UserData));
+		}
 	}
-
-	return SqliteConnection->Execute(R"(CREATE TABLE IF NOT EXISTS "User" (
-		"Id"				INTEGER,
-		"Name"				TEXT UNIQUE NOT NULL,
-		"Caterium"			INTEGER DEFAULT 15,
-		"LockedCaterium"	INTEGER DEFAULT 0,
-		"Prestige"			INTEGER NOT NULL DEFAULT 0,
-		PRIMARY KEY("Id")
-	))");
 }
 
 AChatPlayer* AChatPlayer::GetFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, TSubclassOf<AChatPlayer> Class)
@@ -34,59 +30,74 @@ AChatPlayer* AChatPlayer::GetFromAuthor(UObject* WorldContextObject, FTwitchMess
 	return FindOrCreate(WorldContextObject, id, name, Class);
 }
 
-bool AChatPlayer::Exists(int64 Id)
+bool AChatPlayer::Exists(UObject* WorldContextObject, int64 ID)
 {
-	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id FROM "User" WHERE Id = ?)"));
-	if (!Select.IsValid() ||
-		!Select.Bind(1, Id) ||
-		Select.Step() != ESqliteStepResult::Data)
+	UEpiUserDataSubsystem* UserData = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
+	if (!ensure(IsValid(UserData)))
 	{
 		return false;
 	}
 
-	return true;
+	return UserData->Exists(ID);
 }
 
 AChatPlayer* AChatPlayer::Find(UObject* WorldContextObject, FString Name, TSubclassOf<AChatPlayer> Class)
 {
-	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id FROM "User" WHERE Name = ?)"));
-	if (!Select.IsValid() ||
-		!Select.Bind(1, Name) ||
-		Select.Step() != ESqliteStepResult::Data)
+	UEpiUserDataSubsystem* UserData = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
+	if (!ensure(IsValid(UserData)))
+	{
+		return false;
+	}
+
+	Name.RemoveFromStart(TEXT("@"));
+
+	int id = UserData->GetIdForName(Name);
+	if (id < 0)
 	{
 		return nullptr;
 	}
 
-	TMap<FString, FSQLiteValue> Properties = Select.ReadRow();
+	return FindById(WorldContextObject, id, Class);
+}
 
-	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActor<AChatPlayer>(Class);
-	ChatPlayer->ID = Properties["Id"].IntValue;
-	ChatPlayer->Name = Name;
+AChatPlayer* AChatPlayer::FindById(UObject* WorldContextObject, int64 Id, TSubclassOf<AChatPlayer> Class)
+{
+	if (!Exists(WorldContextObject, Id))
+	{
+		return nullptr;
+	}
+
+	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActorDeferred<AChatPlayer>(Class, FTransform::Identity);
+	ChatPlayer->Data.ID = Id;
 	if (ChatPlayer->ReloadData())
 	{
+		ChatPlayer->FinishSpawning(FTransform::Identity);
 		return ChatPlayer;
 	}
 
+	ChatPlayer->Destroy();
 	return nullptr;
 }
 
 AChatPlayer* AChatPlayer::FindOrCreate(UObject* WorldContextObject, int64 ID, FString Name, TSubclassOf<AChatPlayer> Class)
 {
-	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActor<AChatPlayer>(Class);
-	ChatPlayer->ID = ID;
-	ChatPlayer->Name = Name;
+	if (!ensure(Class))
+	{
+		return nullptr;
+	}
+
+	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActorDeferred<AChatPlayer>(Class, FTransform::Identity);
+	ChatPlayer->Data.ID = ID;
+	ChatPlayer->Data.Name = Name;
 	if (ChatPlayer->ReloadData())
 	{
+		ChatPlayer->FinishSpawning(FTransform::Identity);
 		return ChatPlayer;
 	}
 
-	// Ensure player exists
-	auto Insert = USqliteConnection::PrepareSimple(TEXT(R"(INSERT INTO "User" (Id, Name) VALUES (?, ?))"));
-	if (!Insert.IsValid() ||
-		!Insert.Bind(1, ID) ||
-		!Insert.Bind(2, Name) ||
-		Insert.Step() != ESqliteStepResult::Done)
+	if (!ChatPlayer->UserData->Create(ID, Name))
 	{
+		ChatPlayer->Destroy();
 		return nullptr;
 	}
 
@@ -96,88 +107,27 @@ AChatPlayer* AChatPlayer::FindOrCreate(UObject* WorldContextObject, int64 ID, FS
 
 bool AChatPlayer::ReloadData()
 {
-	if (!EnsureTable())
-	{
-		return false;
-	}
-
-	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id, Name, Caterium, Prestige FROM "User" WHERE Id = ?)"));
-	if (!Select.IsValid() ||
-		!Select.Bind(1, ID) ||
-		Select.Step() != ESqliteStepResult::Data)
-	{
-		return false;
-	}
-
-	Select.AssignNextRowToObject(this);
-	return true;
+	return UserData->GetUserData(Data.ID, Data);
 }
 
 void AChatPlayer::AddCaterium(int32 Delta)
 {
-	int32 NewCaterium = Caterium + Delta;
-	if (Delta > 0)
-	{
-		// Overflow => Prestige :D
-		if (NewCaterium < 0)
-		{
-			OnCateriumOverflow.Broadcast(this);
-		}
-	}
-	else
-	{
-		NewCaterium = FMath::Max(NewCaterium, 0);
-	}
-
-	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "User" SET Caterium = ? WHERE Id = ?)"));
-	if (!Update.IsValid() ||
-		!Update.Bind(1, NewCaterium) ||
-		!Update.Bind(2, ID) ||
-		Update.Step() != ESqliteStepResult::Done)
-	{
-		return;
-	}
+	return UserData->AddCaterium(Data.ID, Delta);
 }
 
 void AChatPlayer::LockCaterium(int32 Amount)
 {
-	if (Amount == 0)
-	{
-		return;
-	}
-
-	Amount = FMath::Min(Amount, Caterium);
-
-	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "User" SET Caterium = ?, LockedCaterium = ? WHERE Id = ?)"));
-	if (!Update.IsValid() ||
-		!Update.Bind(1, Caterium - Amount) ||
-		!Update.Bind(2, LockedCaterium + Amount) ||
-		!Update.Bind(3, ID) ||
-		Update.Step() != ESqliteStepResult::Done)
-	{
-		return;
-	}
-
-	Caterium -= Amount;
-	LockedCaterium += Amount;
+	return UserData->LockCaterium(Data.ID, Amount);
 }
 
 void AChatPlayer::UnlockCaterium()
 {
-	LockCaterium(-LockedCaterium);
+	return UserData->UnlockCaterium(Data.ID);
 }
 
 void AChatPlayer::ForefeitLockedCaterium()
 {
-	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "User" SET LockedCaterium = 0 WHERE Id = ?)"));
-	if (!Update.IsValid() ||
-		!Update.Bind(1, ID) ||
-		Update.Step() != ESqliteStepResult::Done)
-	{
-		return;
-	}
-
-	LockedCaterium = 0;
+	return UserData->ForefeitLockedCaterium(Data.ID);
 }
 
 void AChatPlayer::GiveCaterium(AChatPlayer* Other, int32 Amount)
@@ -187,7 +137,7 @@ void AChatPlayer::GiveCaterium(AChatPlayer* Other, int32 Amount)
 		return;
 	}
 
-	if (Caterium < Amount || Amount < 0)
+	if (Data.Caterium < Amount || Amount < 0)
 	{
 		return;
 	}

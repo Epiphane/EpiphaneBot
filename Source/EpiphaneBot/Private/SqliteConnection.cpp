@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "SqliteConnection.h"
+#include "ApplicationSettings.h"
 
 DEFINE_LOG_CATEGORY(LogSqliteConnection);
 
@@ -125,12 +125,11 @@ TMap<FString, FSQLiteValue> FSqliteStatement::ReadRow()
 	return Result;
 }
 
-bool FSqliteStatement::AssignNextRowToObject(UObject* Object)
+bool FSqliteStatement::AssignNextRowToObject(const UStruct* Class, void* Object)
 {
 	check(Statement);
-	UClass* SourceObjectClass = Object->GetClass();
 	TMap<FString, FProperty*> Props;
-	for (TFieldIterator<FProperty> PropIt(SourceObjectClass, EFieldIteratorFlags::SuperClassFlags::IncludeSuper);
+	for (TFieldIterator<FProperty> PropIt(Class, EFieldIteratorFlags::SuperClassFlags::IncludeSuper);
 		PropIt; ++PropIt)
 	{
 		Props.Add(*PropIt->GetNameCPP(), *PropIt);
@@ -226,7 +225,14 @@ FTemporarySqliteConnection USqliteConnection::Open(FString DatabasePath)
 
 FTemporarySqliteConnection USqliteConnection::OpenDefault()
 {
-	return USqliteConnection::Open(FPaths::ProjectSavedDir() + kDatabasePath);
+	FString Path = FPaths::ProjectSavedDir() + kDatabasePath;
+	UApplicationSettings* UserSettings = Cast<UApplicationSettings>(GEngine->GetGameUserSettings());
+	if (ensure(UserSettings))
+	{
+		Path = UserSettings->GetDatabasePath();
+	}
+
+	return USqliteConnection::Open(Path);
 }
 
 FSimpleSqliteStatement USqliteConnection::PrepareSimple(FString query)

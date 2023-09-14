@@ -11,9 +11,11 @@ public class EpiphaneBot : ModuleRules
 		PublicDependencyModuleNames.AddRange(new string[] {
             "Core",
             "CoreUObject",
+            "DesktopPlatform",
             "Engine",
             "HTTP",
             "InputCore",
+            "Slate",
             "TwitchApi",
             "TwitchPlugin",
             "TwitchSettingsPlugin",

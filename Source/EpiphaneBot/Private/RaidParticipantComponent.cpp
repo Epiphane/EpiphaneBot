@@ -48,7 +48,7 @@ void URaidParticipantComponent::BeginPlay()
 	auto Insert = USqliteConnection::PrepareSimple(TEXT(R"(INSERT INTO "RaidParticipant" (RaidId, UserId, Investment) VALUES (?, ?, ?))"));
 	if (!Insert.IsValid() ||
 		!Insert.Bind(1, Raid->ID) ||
-		!Insert.Bind(2, Player->ID) ||
+		!Insert.Bind(2, Player->Data.ID) ||
 		!Insert.Bind(3, Investment) ||
 		Insert.Step() != ESqliteStepResult::Done)
 	{
@@ -72,7 +72,7 @@ void URaidParticipantComponent::SetInvestment(int32 NewInvestment)
 	if (!Update.IsValid() ||
 		!Update.Bind(1, NewInvestment) ||
 		!Update.Bind(2, Raid->ID) ||
-		!Update.Bind(3, Player->ID) ||
+		!Update.Bind(3, Player->Data.ID) ||
 		Update.Step() != ESqliteStepResult::Done)
 	{
 		return;
@@ -97,7 +97,7 @@ void URaidParticipantComponent::SetHealth(int32 NewHealth)
 	if (!Update.IsValid() ||
 		!Update.Bind(1, NewHealth) ||
 		!Update.Bind(2, Raid->ID) ||
-		!Update.Bind(3, Player->ID) ||
+		!Update.Bind(3, Player->Data.ID) ||
 		Update.Step() != ESqliteStepResult::Done)
 	{
 		return;
@@ -120,7 +120,7 @@ void URaidParticipantComponent::SetWinnings(int32 NewWinnings)
 	if (!Update.IsValid() ||
 		!Update.Bind(1, NewWinnings) ||
 		!Update.Bind(2, Raid->ID) ||
-		!Update.Bind(3, Player->ID) ||
+		!Update.Bind(3, Player->Data.ID) ||
 		Update.Step() != ESqliteStepResult::Done)
 	{
 		return;

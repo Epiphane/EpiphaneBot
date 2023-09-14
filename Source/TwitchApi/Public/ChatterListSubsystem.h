@@ -20,7 +20,7 @@ class TWITCHAPI_API UChatterListSubsystem : public UGameInstanceSubsystem
 	GENERATED_BODY()
 	
 public:
-	void Initialize(FSubsystemCollectionBase& Collection) override;
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 
 	UFUNCTION()
 	void OnConnected(FString Channel);
@@ -37,10 +37,12 @@ public:
 	UFUNCTION()
 	void OnQueryFail(const TArray<FChatter>& Viewers);
 
+	virtual void ProcessChanges(const TSet<FChatter>& NewChatters, const TSet<FChatter>& LeftChatters);
+
 	FOnChatterDelegate& GetOnChatterJoined() { return OnChatterJoined; }
 	FOnChatterDelegate& GetOnChatterLeft() { return OnChatterLeft; }
 
-private:
+protected:
 	UPROPERTY(BlueprintAssignable)
 	FOnChatterDelegate OnChatterJoined;
 
