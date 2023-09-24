@@ -3,25 +3,38 @@
 #include "EpiUser.h"
 #include "EpiUserDataSubsystem.h"
 
-// Sets default values
-AEpiUser::AEpiUser()
+void IEpiUser::Init(UObject* WorldContextObject, int32 ID)
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	UWorld* World = WorldContextObject->GetWorld();
+	if (World)
+	{
+		UGameInstance* GameInstance = World->GetGameInstance();
+		if (GameInstance)
+		{
+			UserData = GameInstance->GetSubsystem<UEpiUserDataSubsystem>();
+			ensure(IsValid(UserData));
+		}
+	}
 
+	Initialize(ID);
 }
 
-// Called when the game starts or when spawned
-void AEpiUser::BeginPlay()
+bool IEpiUser::ReloadData()
 {
-	Super::BeginPlay();
-	ensure(Data.ID != 0);
+	if (ensure(UserData))
+	{
+		return UserData->GetUserData(Data.ID, Data);
+	}
 
-	UEpiUserDataSubsystem* UserData = GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
+	return false;
+}
+
+void UEpiUserObject::Initialize(int32 ID)
+{
 	if (ensure(IsValid(UserData)))
 	{
 #define BIND_PROPERTY_CHANGED(Property) F ## Property ## ChangedDelegate Property ## Delegate; \
-	Property ## Delegate.BindDynamic(this, &AEpiUser::On ## Property ## Changed); \
+	Property ## Delegate.BindDynamic(this, &UEpiUserObject::On ## Property ## Changed); \
 	UserData->BindOn ## Property ## Changed(Data.ID, Property ## Delegate);
 
 		BIND_PROPERTY_CHANGED(Caterium);
@@ -31,13 +44,86 @@ void AEpiUser::BeginPlay()
 	}
 }
 
-void AEpiUser::OnCateriumChanged(int32, int32 NewCaterium)
+bool UEpiUserObject::Exists(UObject* WorldContextObject, int64 ID)
+{
+	UEpiUserDataSubsystem* UserData = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
+	if (!ensure(IsValid(UserData)))
+	{
+		return false;
+	}
+
+	return UserData->Exists(ID);
+}
+
+TScriptInterface<IEpiUser> UEpiUserObject::Find(UObject* WorldContextObject, FString Name, UClass* Class)
+{
+	UEpiUserDataSubsystem* UserData = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
+	if (!ensure(IsValid(UserData)))
+	{
+		return nullptr;
+	}
+
+	Name.RemoveFromStart(TEXT("@"));
+
+	int id = UserData->GetIdForName(Name);
+	if (id < 0)
+	{
+		return nullptr;
+	}
+
+	return FindById(WorldContextObject, id, Class);
+}
+
+TScriptInterface<IEpiUser> UEpiUserObject::FindById(UObject* Outer, int64 ID, UClass* Class)
+{
+	if (!Exists(Outer, ID))
+	{
+		return nullptr;
+	}
+
+	UEpiUser* ChatPlayer = NewObject<UEpiUser>(Outer, Class);
+	IEpiUser* Interfaced = Cast<IEpiUser>(ChatPlayer);
+	Interfaced->Init(Outer, ID);
+	if (Interfaced->ReloadData())
+	{
+		return ChatPlayer;
+	}
+
+	return nullptr;
+}
+
+TScriptInterface<IEpiUser> UEpiUserObject::Get(UObject* Outer, int64 ID, FString Name, UClass* Class)
+{
+	if (!ensure(Class && Class->ImplementsInterface(UEpiUser::StaticClass())))
+	{
+		return nullptr;
+	}
+
+	UEpiUserObject* ChatPlayer = NewObject<UEpiUserObject>(Outer, Class);
+	if (ensure(ChatPlayer->UserData))
+	{
+		if (!ChatPlayer->UserData->Exists(ID) && 
+			!ChatPlayer->UserData->Create(ID, Name))
+		{
+			return nullptr;
+		}
+
+		if (ChatPlayer->UserData->GetUserData(ID, ChatPlayer->Data))
+		{
+			return ChatPlayer;
+		}
+	}
+
+	return nullptr;
+}
+
+void UEpiUserObject::OnCateriumChanged(int32, int32 NewCaterium)
 {
 	Data.Caterium = NewCaterium;
 	OnCateriumChangedDelegate.Broadcast(NewCaterium);
 }
 
-void AEpiUser::OnPrestigeChanged(int32, int32 NewPrestige)
+void UEpiUserObject::OnPrestigeChanged(int32, int32 NewPrestige)
 {
 	Data.Prestige = NewPrestige;
 	OnPrestigeChangedDelegate.Broadcast(NewPrestige);

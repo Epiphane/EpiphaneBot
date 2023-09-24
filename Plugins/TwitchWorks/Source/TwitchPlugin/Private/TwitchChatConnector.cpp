@@ -26,6 +26,15 @@ UTwitchChatConnector *UTwitchChatConnector::RequestFeed(FChatMessageSentDelegate
 	return RequestTask;
 }
 
+void UTwitchChatConnector::DebugReceiveMessage(FTwitchMessageAuthor Author, FString MessageBody)
+{
+	FTwitchMessage Message;
+	Message.Author = Author;
+	Message.MessageBody = MessageBody;
+
+	OnTwitchMessageRecieved(Message);
+}
+
 void UTwitchChatConnector::BeginDestroy()
 {
 	// Is the async task still running?
@@ -1347,13 +1356,26 @@ TArray<FString> UTwitchChatConnector::ParseTwitchCommand(FString Buffer, FTwitch
 	return Parameters;
 }
 
+bool FTwitchChatConnectorTask::bIsOutputEnabled = true;
+void FTwitchChatConnectorTask::SetOutputEnabled(bool bEnabled)
+{
+	bIsOutputEnabled = bEnabled;
+}
+
 bool FTwitchChatConnectorTask::SendOverSocket(FString Message)
 {
 	if (!bIsTaskActive || !WebSocket || !WebSocket->IsConnected()) { return false; }
 
 	// Verbose logging for debugging purposes
-	UE_LOG(LogTwitchWorks, Verbose, TEXT("> %s"), *Message);
-	WebSocket->Send(Message);
+	if (bIsOutputEnabled)
+	{
+		UE_LOG(LogTwitchWorks, Verbose, TEXT("> %s"), *Message);
+		WebSocket->Send(Message);
+	}
+	else
+	{
+		OnMessageRecieved.ExecuteIfBound(TEXT(":epiphane!epiphane@epiphane.tmi.twitch.tv ") + Message);
+	}
 	return true;
 }
 

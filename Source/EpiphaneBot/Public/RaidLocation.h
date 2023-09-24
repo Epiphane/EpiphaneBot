@@ -20,4 +20,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<FString> AcceptedShorthands;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TArray<UTexture2D*> Images;
 };

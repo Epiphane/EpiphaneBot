@@ -8,7 +8,7 @@
 #include "RaidParticipantComponent.generated.h"
 
 class ARaid;
-class AChatPlayer;
+class UChatPlayer;
 
 UCLASS(Within=ChatPlayer)
 class URaidParticipantComponent : public UActorComponent
@@ -22,7 +22,7 @@ public:
 	void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable)
-	FString GetName() const { return GetOwner<AChatPlayer>()->Data.Name; }
+	FString GetName() const { return GetOwner<AChatPlayer>()->GetUserName_Implementation(); }
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	int32 GetInvestment() const { return Investment; }

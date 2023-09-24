@@ -9,6 +9,16 @@ UTwitchPluginBPLibrary::UTwitchPluginBPLibrary(const FObjectInitializer& ObjectI
 
 }
 
+void UTwitchPluginBPLibrary::SetChatOutputEnabled(bool bIsEnabled)
+{
+	FTwitchChatConnectorTask::SetOutputEnabled(bIsEnabled);
+}
+
+bool UTwitchPluginBPLibrary::GetChatOutputEnabled()
+{
+	return FTwitchChatConnectorTask::GetOutputEnabled();
+}
+
 bool UTwitchPluginBPLibrary::SendTwitchMessage(UTwitchChatConnector *Chat, FString Message)
 {
 	// Is the passed in chat valid?

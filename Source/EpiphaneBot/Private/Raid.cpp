@@ -32,7 +32,7 @@ ARaid::ARaid()
 
 }
 
-ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TArray<TSubclassOf<ARaidEvent>> AvailableEvents, UTwitchChatConnector* Chat)
+ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, UTwitchChatConnector* Chat)
 {
 	if (!ensure(RaidClass))
 	{
@@ -76,16 +76,6 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TAr
 	{
 		RaidObject->Destroy();
 		return nullptr;
-	}
-
-	for (const auto& EventClass : AvailableEvents)
-	{
-		ARaidEvent* Event = worldContext->SpawnActor<ARaidEvent>(EventClass);
-		Event->SetOwner(RaidObject);
-		Event->Chat = Chat;
-		Event->Raid = RaidObject;
-		Event->OnComplete.BindDynamic(RaidObject, &ARaid::OnRaidEventComplete);
-		RaidObject->AvailableEvents.Add(Event);
 	}
 
 	return RaidObject;
@@ -134,7 +124,9 @@ void ARaid::BeginRaid_Implementation()
 
 void ARaid::RunNextEvent()
 {
-	TArray<ARaidEvent*> PossibleEvents = AvailableEvents.FilterByPredicate([this](ARaidEvent* Event) { return Event->CanRunEvent(); });
+	TArray<URaidEvent*> PossibleEvents;
+	GetComponents(PossibleEvents);
+	PossibleEvents = PossibleEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->CanRunEvent(); });
 	int32 MaxRarity = 0;
 	int32 TotalWeight = 0;
 	for (const auto& Event : PossibleEvents)
@@ -191,9 +183,9 @@ void ARaid::Complete_Implementation()
 		}
 		else
 		{
-			Player->ForefeitLockedCaterium();
+			Player->Execute_ForefeitLockedCaterium(Player);
 		}
-		Player->UnlockCaterium();
+		Player->Execute_UnlockCaterium(Player);
 	}
 
 	for (URaidParticipantComponent* Participant : Participants)
@@ -204,17 +196,17 @@ void ARaid::Complete_Implementation()
 			double Claim = (double)Participant->Investment / LivingInvestment;
 			int64 PlayerWinnings = FMath::CeilToInt(Claim * Winnings);
 			Participant->SetWinnings(PlayerWinnings);
-			Player->UnlockCaterium();
-			Player->AddCaterium(PlayerWinnings);
+			Player->Execute_UnlockCaterium(Player);
+			Player->Execute_AddCaterium(Player, PlayerWinnings);
 		}
 		else
 		{
-			Player->ForefeitLockedCaterium();
+			Player->Execute_ForefeitLockedCaterium(Player);
 		}
 	}
 
 	OnComplete.Broadcast(this);
-	GetWorld()->DestroyActor(this);
+	Destroy();
 }
 
 bool ARaid::IsInProgress() const
@@ -246,14 +238,14 @@ bool ARaid::IsJoinable()
 	}
 }
 
-void ARaid::IsJoinable(AChatPlayer* Player, EJoinableOutput& Result, URaidParticipantComponent*& Participant)
+void ARaid::IsJoinable(TScriptInterface<IEpiUser> User, EJoinableOutput& Result, URaidParticipantComponent*& Participant)
 {
-	check(Player);
+	check(User);
 	if (!IsJoinable())
 	{
 		Result = EJoinableOutput::RaidNotJoinable;
 	}
-	else if (URaidParticipantComponent** Existing = ParticipantMap.Find(Player->Data.ID); Existing)
+	else if (URaidParticipantComponent** Existing = ParticipantMap.Find(User->GetID_Implementation()); Existing)
 	{
 		Result = EJoinableOutput::AlreadyParticipating;
 		Participant = *Existing;
@@ -294,7 +286,7 @@ void ARaid::Join(AChatPlayer* Player, int32 investment)
 	Participant->Investment = investment;
 	Participant->RegisterComponent();
 	Participants.Add(Participant);
-	ParticipantMap.Add(Player->Data.ID, Participant);
+	ParticipantMap.Add(Player->GetID_Implementation(), Participant);
 }
 
 bool ARaid::ReloadData()

@@ -146,7 +146,7 @@ bool UEpiUserDataSubsystem::Create(int32 ID, const FString& Name)
 
 bool UEpiUserDataSubsystem::GetUserData(const uint32 ID, FEpiUserData& OutUserInfo)
 {
-	return GetUserData(TEXT("Name, Caterium, LockedCaterium, Prestige"), ID, OutUserInfo);
+	return GetUserData(TEXT("Id, Name, Caterium, LockedCaterium, Prestige"), ID, OutUserInfo);
 }
 
 int32 UEpiUserDataSubsystem::GetIdForName(FString Name)

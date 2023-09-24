@@ -5,31 +5,38 @@
 #include "Raid.h"
 
 // Sets default values
-ARaidEvent::ARaidEvent()
+URaidEvent::URaidEvent()
 {
 }
 
-bool ARaidEvent::CanRunEvent_Implementation()
+void URaidEvent::BeginPlay()
+{
+    Super::BeginPlay();
+
+    Raid = GetOwner<ARaid>();
+}
+
+bool URaidEvent::CanRunEvent_Implementation()
 {
     return true;
 }
 
-void ARaidEvent::RunEvent_Implementation()
+void URaidEvent::RunEvent_Implementation()
 {
     MarkComplete();
 }
 
-void ARaidEvent::AddWinnings(float Amount)
+void URaidEvent::AddWinnings(float Amount)
 {
     Raid->AddWinnings(FMath::CeilToInt64(Amount));
 }
 
-bool ARaidEvent::SendTwitchMessage(FText Message)
+bool URaidEvent::SendTwitchMessage(FText Message)
 {
     return UTwitchPluginBPLibrary::SendTwitchMessage(Chat, Message);
 }
 
-void ARaidEvent::MarkComplete()
+void URaidEvent::MarkComplete()
 {
     OnComplete.Execute();
 }

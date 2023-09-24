@@ -43,7 +43,7 @@ private:
 	ARaid();
 
 public:
-	static ARaid* CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, TArray<TSubclassOf<ARaidEvent>> AvailableEvents, UTwitchChatConnector* Chat);
+	static ARaid* CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, UTwitchChatConnector* Chat);
 
 protected:
 	// Called when the game starts or when spawned
@@ -80,7 +80,7 @@ public:
 	bool IsJoinable();
 
 	UFUNCTION(BlueprintCallable, meta = (ExpandEnumAsExecs = "Result"))
-	void IsJoinable(AChatPlayer* Player, EJoinableOutput& Result, URaidParticipantComponent*& Participant);
+	void IsJoinable(TScriptInterface<IEpiUser> Player, EJoinableOutput& Result, URaidParticipantComponent*& Participant);
 
 	ERaidState GetState() const { return State; }
 	FOnRaidCompleteDelegate& GetOnRaidCompleteDelegate() { return OnComplete; }
@@ -138,9 +138,6 @@ public:
 
 	UPROPERTY()
 	TMap<int32, URaidParticipantComponent*> ParticipantMap;
-
-	UPROPERTY()
-	TArray<ARaidEvent*> AvailableEvents;
 
 	UPROPERTY(BlueprintReadOnly)
 	UTwitchChatConnector* Chat;

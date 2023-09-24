@@ -12,13 +12,15 @@ DECLARE_DYNAMIC_DELEGATE(FOnRaidEventCompleteDelegate);
 class ARaid;
 
 UCLASS(Abstract, Blueprintable)
-class EPIPHANEBOT_API ARaidEvent : public AActor
+class EPIPHANEBOT_API URaidEvent : public UActorComponent
 {
 	GENERATED_BODY()
 	
 public:	
 	// Sets default values for this actor's properties
-	ARaidEvent();
+	URaidEvent();
+
+	virtual void BeginPlay() override;
 
 public:
 

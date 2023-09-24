@@ -6,142 +6,70 @@
 
 AChatPlayer::AChatPlayer()
 {
-	UWorld* World = GetWorld();
-	if (World)
-	{
-		UGameInstance* GameInstance = World->GetGameInstance();
-		if (GameInstance)
-		{
-			UserData = GameInstance->GetSubsystem<UEpiUserDataSubsystem>();
-			ensure(IsValid(UserData));
-		}
-	}
 }
 
-AChatPlayer* AChatPlayer::GetFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, TSubclassOf<AChatPlayer> Class)
+int32 AChatPlayer::GetID_Implementation() const
 {
-	FString name = Author.Name;
-	int64 id = FCString::Strtoi64(*Author.UserId, nullptr, 10);
-	if (id == 0)
-	{
-		return nullptr;
-	}
-
-	return FindOrCreate(WorldContextObject, id, name, Class);
+	if (!User) return -1;
+	return User->Execute_GetID(User.GetObject());
 }
 
-bool AChatPlayer::Exists(UObject* WorldContextObject, int64 ID)
+FString AChatPlayer::GetUserName_Implementation() const
 {
-	UEpiUserDataSubsystem* UserData = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
-	if (!ensure(IsValid(UserData)))
-	{
-		return false;
-	}
-
-	return UserData->Exists(ID);
+	if (!User) return TEXT("N/A");
+	return User->Execute_GetUserName(User.GetObject());
 }
 
-AChatPlayer* AChatPlayer::Find(UObject* WorldContextObject, FString Name, TSubclassOf<AChatPlayer> Class)
+int32 AChatPlayer::GetCaterium_Implementation() const
 {
-	UEpiUserDataSubsystem* UserData = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
-	if (!ensure(IsValid(UserData)))
-	{
-		return false;
-	}
-
-	Name.RemoveFromStart(TEXT("@"));
-
-	int id = UserData->GetIdForName(Name);
-	if (id < 0)
-	{
-		return nullptr;
-	}
-
-	return FindById(WorldContextObject, id, Class);
+	if (!User) return 0;
+	return User->Execute_GetCaterium(User.GetObject());
 }
 
-AChatPlayer* AChatPlayer::FindById(UObject* WorldContextObject, int64 Id, TSubclassOf<AChatPlayer> Class)
+int32 AChatPlayer::GetPrestige_Implementation() const
 {
-	if (!Exists(WorldContextObject, Id))
-	{
-		return nullptr;
-	}
-
-	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActorDeferred<AChatPlayer>(Class, FTransform::Identity);
-	ChatPlayer->Data.ID = Id;
-	if (ChatPlayer->ReloadData())
-	{
-		ChatPlayer->FinishSpawning(FTransform::Identity);
-		return ChatPlayer;
-	}
-
-	ChatPlayer->Destroy();
-	return nullptr;
+	if (!User) return 0;
+	return User->Execute_GetPrestige(User.GetObject());
 }
 
-AChatPlayer* AChatPlayer::FindOrCreate(UObject* WorldContextObject, int64 ID, FString Name, TSubclassOf<AChatPlayer> Class)
+void AChatPlayer::AddCaterium_Implementation(int32 Delta)
 {
-	if (!ensure(Class))
-	{
-		return nullptr;
-	}
-
-	AChatPlayer* ChatPlayer = WorldContextObject->GetWorld()->SpawnActorDeferred<AChatPlayer>(Class, FTransform::Identity);
-	ChatPlayer->Data.ID = ID;
-	ChatPlayer->Data.Name = Name;
-	if (ChatPlayer->ReloadData())
-	{
-		ChatPlayer->FinishSpawning(FTransform::Identity);
-		return ChatPlayer;
-	}
-
-	if (!ChatPlayer->UserData->Create(ID, Name))
-	{
-		ChatPlayer->Destroy();
-		return nullptr;
-	}
-
-	ChatPlayer->ReloadData();
-	return ChatPlayer;
+	if (!User) return;
+	return User->Execute_AddCaterium(User.GetObject(), Delta);
 }
 
-bool AChatPlayer::ReloadData()
+void AChatPlayer::LockCaterium_Implementation(int32 Amount)
 {
-	return UserData->GetUserData(Data.ID, Data);
+	if (!User) return;
+	return User->Execute_LockCaterium(User.GetObject(), Amount);
 }
 
-void AChatPlayer::AddCaterium(int32 Delta)
+void AChatPlayer::UnlockCaterium_Implementation()
 {
-	return UserData->AddCaterium(Data.ID, Delta);
+	if (!User) return;
+	return User->Execute_UnlockCaterium(User.GetObject());
 }
 
-void AChatPlayer::LockCaterium(int32 Amount)
+void AChatPlayer::ForefeitLockedCaterium_Implementation()
 {
-	return UserData->LockCaterium(Data.ID, Amount);
+	if (!User) return;
+	return User->Execute_ForefeitLockedCaterium(User.GetObject());
 }
 
-void AChatPlayer::UnlockCaterium()
+void AChatPlayer::GiveCaterium_Implementation(const TScriptInterface<IEpiUser>& Other, int32 Amount)
 {
-	return UserData->UnlockCaterium(Data.ID);
+	if (!User) return;
+	return User->Execute_GiveCaterium(User.GetObject(), Other, Amount);
 }
 
-void AChatPlayer::ForefeitLockedCaterium()
+void AChatPlayer::BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback)
 {
-	return UserData->ForefeitLockedCaterium(Data.ID);
+	if (!User) return;
+	return User->Execute_BindOnCateriumChanged(User.GetObject(), Callback);
 }
 
-void AChatPlayer::GiveCaterium(AChatPlayer* Other, int32 Amount)
+void AChatPlayer::BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChangedDelegate& Callback)
 {
-	if (!ensure(Other))
-	{
-		return;
-	}
-
-	if (Data.Caterium < Amount || Amount < 0)
-	{
-		return;
-	}
-
-	AddCaterium(-Amount);
-	Other->AddCaterium(Amount);
+	if (!User) return;
+	return User->Execute_BindOnPrestigeChanged(User.GetObject(), Callback);
 }

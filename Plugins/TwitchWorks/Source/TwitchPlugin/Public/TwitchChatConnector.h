@@ -319,6 +319,12 @@ public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName="Connect To Twitch", BlueprintInternalUseOnly="true"))
 	static UTwitchChatConnector* RequestFeed(FChatMessageSentDelegateTwo OnMessage, FTwitchCheerDelegate OnCheer, FTwitchLoginCredentials Credentials, FString Channel);
 
+	UFUNCTION(BlueprintCallable)
+	void DebugReceiveMessage(
+		FTwitchMessageAuthor Author,
+		FString MessageBody
+	);
+
 	// Deconstruction - Stops async task
 	virtual void BeginDestroy() override;
 
@@ -415,6 +421,14 @@ public:
 		referenceCallbackDelegate.ExecuteIfBound(this);
 	}
 
+	// When testing, turn off chat output. When this is true,
+	// messages are instead logged to the screen.
+	UFUNCTION(BlueprintCallable)
+	static void SetOutputEnabled(bool bEnabled);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static bool GetOutputEnabled() { return bIsOutputEnabled; }
+
 	// Will attempt to send a message (string, it won't do IRC formatting for you) over the socket connection.
 	bool SendOverSocket(FString Message);
 
@@ -454,6 +468,8 @@ public:
 	// Is the task currently running?
 	bool bIsTaskActive;
 private:
+	// See SetOutputEnabled
+	static bool bIsOutputEnabled;
 	// The channel that this chat task is connected to.
 	FString Channel;
 	// The twitch credentials required to log in to twitch.

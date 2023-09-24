@@ -16,6 +16,12 @@ class UTwitchPluginBPLibrary : public UBlueprintFunctionLibrary
 	GENERATED_UCLASS_BODY()
 
 public:
+	UFUNCTION(BlueprintCallable)
+	static void SetChatOutputEnabled(bool bIsEnabled);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	static bool GetChatOutputEnabled();
+
 	/**
 	* Sends a message to a twitch chat.
 	*

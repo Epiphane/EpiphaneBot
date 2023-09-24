@@ -32,7 +32,7 @@ public:
 	FOnDatabasePathChangedDelegate& GetOnDatabasePathChanged() { return OnDatabasePathChanged; }
 
 private:
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintGetter = GetDatabasePath)
 	FString DatabasePath;
 
 	UPROPERTY(BlueprintAssignable)

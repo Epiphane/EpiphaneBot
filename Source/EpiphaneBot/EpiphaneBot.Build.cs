@@ -15,6 +15,7 @@ public class EpiphaneBot : ModuleRules
             "Engine",
             "HTTP",
             "InputCore",
+            "Paper2D",
             "Slate",
             "TwitchApi",
             "TwitchPlugin",

@@ -8,57 +8,30 @@
 #include "TwitchChatConnector.h"
 #include "ChatPlayer.generated.h"
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCateriumOverflow, AChatPlayer*, Player);
-
-/**
- * 
- */
 UCLASS(BlueprintType)
-class EPIPHANEBOT_API AChatPlayer : public AEpiUser
+class EPIPHANEBOT_API AChatPlayer : public AActor, public IEpiUser
 {
 	GENERATED_BODY()
 
 public:
 	AChatPlayer();
 
-	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (DisplayName = "Get Chat Player", AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
-	static AChatPlayer* GetFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, TSubclassOf<AChatPlayer> Class);
+	virtual int32 GetID_Implementation() const override;
+	virtual FString GetUserName_Implementation() const override;
+	virtual int32 GetCaterium_Implementation() const override;
+	virtual int32 GetPrestige_Implementation() const override;
+	virtual void AddCaterium_Implementation(int32 Caterium) override;
+	virtual void LockCaterium_Implementation(int32 Amount) override;
+	virtual void UnlockCaterium_Implementation() override;
+	virtual void ForefeitLockedCaterium_Implementation() override;
+	virtual void GiveCaterium_Implementation(const TScriptInterface<IEpiUser>& Other, int32 Amount) override;
+	virtual void BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback) override;
+	virtual void BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChangedDelegate& Callback) override;
 
-	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (WorldContext = "WorldContextObject"))
-	static bool Exists(UObject* WorldContextObject, int64 Id);
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
+	UChatAvatar* Avatar;
 
-	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
-	static AChatPlayer* Find(UObject* WorldContextObject, FString Name, TSubclassOf<AChatPlayer> Class);
-
-	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
-	static AChatPlayer* FindById(UObject* WorldContextObject, int64 Id, TSubclassOf<AChatPlayer> Class);
-
-	UFUNCTION(BlueprintCallable, Category = "Chat Player", meta = (AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
-	static AChatPlayer* FindOrCreate(UObject* WorldContextObject, int64 Id, FString Name, TSubclassOf<AChatPlayer> Class);
-
-	UFUNCTION(BlueprintCallable, Category = "Chat Player")
-	bool ReloadData();
-
-	UPROPERTY(BlueprintAssignable)
-	FOnCateriumOverflow OnCateriumOverflow;
-
-public:
-	UFUNCTION(BlueprintCallable)
-	void AddCaterium(int32 Caterium);
-
-	UFUNCTION(BlueprintCallable)
-	void LockCaterium(int32 Amount);
-
-	UFUNCTION(BlueprintCallable)
-	void UnlockCaterium();
-
-	UFUNCTION(BlueprintCallable)
-	void ForefeitLockedCaterium();
-
-	UFUNCTION(BlueprintCallable)
-	void GiveCaterium(AChatPlayer* Other, int32 Amount);
-
-private:
-	UPROPERTY()
-	UEpiUserDataSubsystem* UserData;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (ExposeOnSpawn = true))
+	TScriptInterface<IEpiUser> User;
 };

@@ -10,7 +10,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRaidManager, Log, All);
 
-
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRaidCreatedDelegate, ARaid*, Raid);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRaidCooldownOverDelegate);
 
 UENUM(BlueprintType)
@@ -44,7 +44,7 @@ public:
 	ARaid* GetCurrentRaid();
 
 	UFUNCTION(BlueprintCallable, meta = (ExpandEnumAsExecs = "Result"))
-	void GetRaidEligibility(AChatPlayer* Player, ERaidEligibility& Result, ARaid*& CurrentRaid, URaidParticipantComponent*& Participant, float& Cooldown);
+	void GetRaidEligibility(TScriptInterface<IEpiUser> User, ERaidEligibility& Result, ARaid*& CurrentRaid, URaidParticipantComponent*& Participant, float& Cooldown);
 
 	FOnRaidCooldownOverDelegate& GetOnRaidCooldownOver() { return OnRaidCooldownOver; }
 
@@ -68,11 +68,11 @@ private:
 	UPROPERTY(BlueprintAssignable)
 	FOnRaidCooldownOverDelegate OnRaidCooldownOver;
 
+	UPROPERTY(BlueprintAssignable)
+	FOnRaidCreatedDelegate OnRaidCreated;
+
 	/* Handle to manage the timer */
 	FTimerHandle RaidCooldownTimer;
 
 	int64 RaidEventPoolSize = 0;
-
-	UPROPERTY()
-	TArray<TSubclassOf<ARaidEvent>> AvailableEvents;
 };

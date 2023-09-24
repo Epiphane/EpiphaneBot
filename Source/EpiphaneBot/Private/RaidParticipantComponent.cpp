@@ -48,14 +48,14 @@ void URaidParticipantComponent::BeginPlay()
 	auto Insert = USqliteConnection::PrepareSimple(TEXT(R"(INSERT INTO "RaidParticipant" (RaidId, UserId, Investment) VALUES (?, ?, ?))"));
 	if (!Insert.IsValid() ||
 		!Insert.Bind(1, Raid->ID) ||
-		!Insert.Bind(2, Player->Data.ID) ||
+		!Insert.Bind(2, Player->GetID_Implementation()) ||
 		!Insert.Bind(3, Investment) ||
 		Insert.Step() != ESqliteStepResult::Done)
 	{
 		return;
 	}
 
-	Player->LockCaterium(Investment);
+	Player->LockCaterium_Implementation(Investment);
 }
 
 void URaidParticipantComponent::SetInvestment(int32 NewInvestment)
@@ -72,15 +72,15 @@ void URaidParticipantComponent::SetInvestment(int32 NewInvestment)
 	if (!Update.IsValid() ||
 		!Update.Bind(1, NewInvestment) ||
 		!Update.Bind(2, Raid->ID) ||
-		!Update.Bind(3, Player->Data.ID) ||
+		!Update.Bind(3, Player->GetID_Implementation()) ||
 		Update.Step() != ESqliteStepResult::Done)
 	{
 		return;
 	}
 
-	Player->LockCaterium(-Investment);
+	Player->LockCaterium_Implementation(-Investment);
 	Investment = NewInvestment;
-	Player->LockCaterium(Investment);
+	Player->LockCaterium_Implementation(Investment);
 }
 
 void URaidParticipantComponent::SetHealth(int32 NewHealth)
@@ -90,14 +90,14 @@ void URaidParticipantComponent::SetHealth(int32 NewHealth)
 		return;
 	}
 
-	AChatPlayer* Player = GetOwner<AChatPlayer>();
+	IEpiUser* Player = GetOwner<AChatPlayer>();
 	check(Player);
 
 	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "RaidParticipant" SET Health = ? WHERE RaidId = ? AND UserId = ?)"));
 	if (!Update.IsValid() ||
 		!Update.Bind(1, NewHealth) ||
 		!Update.Bind(2, Raid->ID) ||
-		!Update.Bind(3, Player->Data.ID) ||
+		!Update.Bind(3, Player->GetID_Implementation()) ||
 		Update.Step() != ESqliteStepResult::Done)
 	{
 		return;
@@ -113,14 +113,14 @@ void URaidParticipantComponent::SetWinnings(int32 NewWinnings)
 		return;
 	}
 
-	AChatPlayer* Player = GetOwner<AChatPlayer>();
+	IEpiUser* Player = GetOwner<AChatPlayer>();
 	check(Player);
 
 	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "RaidParticipant" SET Winnings = ? WHERE RaidId = ? AND UserId = ?)"));
 	if (!Update.IsValid() ||
 		!Update.Bind(1, NewWinnings) ||
 		!Update.Bind(2, Raid->ID) ||
-		!Update.Bind(3, Player->Data.ID) ||
+		!Update.Bind(3, Player->GetID_Implementation()) ||
 		Update.Step() != ESqliteStepResult::Done)
 	{
 		return;

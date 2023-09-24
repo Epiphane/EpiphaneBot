@@ -34,9 +34,11 @@ void UTwitchGetChatters::MakeRequest(const FTwitchLoginCredentials& Credentials)
 	FHttpRequestPtr HttpRequest = FHttpModule::Get().CreateRequest();
 	HttpRequest->SetVerb(TEXT("GET"));
 	HttpRequest->SetHeader(TEXT("Accept"), TEXT("application/json"));
-	HttpRequest->SetHeader(TEXT("Client-ID"), GetMutableDefault<UTwitchRuntimeSettings>()->clientID);
+	FString clientID = GetMutableDefault<UTwitchRuntimeSettings>()->clientID;
+	HttpRequest->SetHeader(TEXT("Client-ID"), clientID);
 	HttpRequest->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *Credentials.OAuthToken));
-	HttpRequest->SetURL(FString::Printf(TEXT("https://api.twitch.tv/helix/chat/chatters?broadcaster_id=%s&moderator_id=%s"), *Credentials.UserId, *Credentials.UserId));
+	FString url = FString::Printf(TEXT("https://api.twitch.tv/helix/chat/chatters?broadcaster_id=%s&moderator_id=%s"), *Credentials.UserId, *Credentials.UserId);
+	HttpRequest->SetURL(url);
 	HttpRequest->OnProcessRequestComplete().BindUObject(this, &UTwitchGetChatters::HandleHTTPRequest);
 	HttpRequest->ProcessRequest();
 }
@@ -46,7 +48,7 @@ void UTwitchGetChatters::HandleHTTPRequest(FHttpRequestPtr HttpRequest, FHttpRes
 	// Ensure the request completed successfully
 	if (!bSucceeded || !EHttpResponseCodes::IsOk(HttpResponse->GetResponseCode()))
 	{
-		UE_LOG(LogTwitchGetChatters, Warning, TEXT("Failed to get that channel's viewers!"));
+		UE_LOG(LogTwitchGetChatters, Warning, TEXT("[%d] Failed to get that channel's viewers: %s"), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
 
 		AsyncTask(ENamedThreads::GameThread, [=]()
 		{
