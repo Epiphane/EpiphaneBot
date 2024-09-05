@@ -8,6 +8,15 @@ AChatPlayer::AChatPlayer()
 {
 }
 
+AChatPlayer* AChatPlayer::Spawn(UObject* worldContextObject, TSubclassOf<AChatPlayer> Class, TScriptInterface<IEpiUser> Data)
+{
+	AChatPlayer* Result = worldContextObject->GetWorld()->SpawnActorDeferred<AChatPlayer>(Class, FTransform::Identity);
+	check(Result != nullptr);
+	Result->User = Data;
+	Result->FinishSpawning(FTransform::Identity);
+	return Result;
+}
+
 int32 AChatPlayer::GetID_Implementation() const
 {
 	if (!User) return -1;
@@ -18,6 +27,12 @@ FString AChatPlayer::GetUserName_Implementation() const
 {
 	if (!User) return TEXT("N/A");
 	return User->Execute_GetUserName(User.GetObject());
+}
+
+FLinearColor AChatPlayer::GetUserColor_Implementation() const
+{
+	if (!User) return FLinearColor::White;
+	return User->Execute_GetUserColor(User.GetObject());
 }
 
 int32 AChatPlayer::GetCaterium_Implementation() const

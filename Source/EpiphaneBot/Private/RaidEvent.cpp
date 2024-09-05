@@ -16,9 +16,14 @@ void URaidEvent::BeginPlay()
     Raid = GetOwner<ARaid>();
 }
 
+int32 URaidEvent::GetRarity_Implementation()
+{
+    return DefaultRarity;
+}
+
 bool URaidEvent::CanRunEvent_Implementation()
 {
-    return true;
+    return bEnabled;
 }
 
 void URaidEvent::RunEvent_Implementation()
@@ -38,6 +43,6 @@ bool URaidEvent::SendTwitchMessage(FText Message)
 
 void URaidEvent::MarkComplete()
 {
-    OnComplete.Execute();
+    OnComplete.Broadcast();
 }
 

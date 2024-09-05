@@ -15,7 +15,7 @@ class EPIPHANEBOT_API USimpleEpiUser : public UObject, public IEpiUser
 
 public:
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Simple User", WorldContext = "WorldContextObject"))
-	static USimpleEpiUser* Get(UObject* WorldContextObject, FString Name, int64 Id, bool CreateIfNotFound = true);
+	static USimpleEpiUser* Get(UObject* WorldContextObject, FString Name, int64 Id, FLinearColor Color = FLinearColor::White, bool CreateIfNotFound = true);
 
 	UFUNCTION(BlueprintCallable, meta = (WorldContext = "WorldContextObject"))
 	static USimpleEpiUser* GetUserFromName(UObject* WorldContextObject, FString Name);
@@ -26,6 +26,7 @@ public:
 	virtual UChatAvatar* GetAvatar_Implementation() const override;
 	virtual int32 GetID_Implementation() const override;
 	virtual FString GetUserName_Implementation() const override;
+	virtual FLinearColor GetUserColor_Implementation() const override;
 	virtual int32 GetCaterium_Implementation() const override;
 	virtual int32 GetPrestige_Implementation() const override;
 	virtual void AddCaterium_Implementation(int32 Caterium) override;
@@ -38,6 +39,9 @@ public:
 
 public:
 	UFUNCTION()
+	void OnColorChanged(int32 ID, FLinearColor NewColor);
+
+	UFUNCTION()
 	void OnCateriumChanged(int32 ID, int32 NewCaterium);
 
 	UFUNCTION()
@@ -49,6 +53,9 @@ protected:
 
 	UPROPERTY(BlueprintAssignable)
 	FUserPrestigeChangedDelegate OnPrestigeChangedDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FUserColorChangedDelegate OnColorChangedDelegate;
 
 private:
 	UPROPERTY(EditDefaultsOnly)

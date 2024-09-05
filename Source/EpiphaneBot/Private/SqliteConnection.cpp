@@ -145,6 +145,7 @@ bool FSqliteStatement::AssignNextRowToObject(const UStruct* Class, void* Object)
 		}
 
 		FProperty* targetProperty = Props[name];
+		FString PropertyType = targetProperty->GetCPPType();
 
 		if (value.Type == ESqliteValueType::Float)
 		{
@@ -182,7 +183,13 @@ bool FSqliteStatement::AssignNextRowToObject(const UStruct* Class, void* Object)
 		}
 		else if (value.Type == ESqliteValueType::Text)
 		{
-			if (FStrProperty* strProp = CastField<FStrProperty>(targetProperty))
+			if (PropertyType == "FLinearColor")
+			{
+				FLinearColor Color;
+				Color.InitFromString(value.StringValue);
+				targetProperty->SetValue_InContainer(Object, &Color);
+			}
+			else if (FStrProperty* strProp = CastField<FStrProperty>(targetProperty))
 			{
 				strProp->SetPropertyValue_InContainer(Object, value.StringValue);
 			}

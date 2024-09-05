@@ -24,6 +24,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FString GetName() const { return GetOwner<AChatPlayer>()->GetUserName_Implementation(); }
 
+	UFUNCTION(BlueprintCallable)
+	FLinearColor GetColor() const { return GetOwner<AChatPlayer>()->GetUserColor_Implementation(); }
+
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	int32 GetInvestment() const { return Investment; }
 
@@ -46,7 +49,7 @@ public:
 	bool IsAlive() const { return Health > 0; }
 
 	UFUNCTION(BlueprintCallable)
-	void Kill() { SetHealth(0); }
+	void Kill();
 
 	UPROPERTY()
 	ARaid* Raid;

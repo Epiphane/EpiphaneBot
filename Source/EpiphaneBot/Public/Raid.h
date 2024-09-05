@@ -11,7 +11,9 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogRaid, Log, All);
 
-UENUM()
+class AChatPlayer;
+
+UENUM(BlueprintType)
 enum class ERaidState: uint8
 {
 	NotStarted = 0,
@@ -20,6 +22,8 @@ enum class ERaidState: uint8
 	Done,
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRaidStateChanged, ERaidState, State);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnPlayerJoined, AChatPlayer*, Player);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnRaidCompleteDelegate, ARaid*, Raid);
 
 UENUM(BlueprintType)
@@ -84,12 +88,16 @@ public:
 
 	ERaidState GetState() const { return State; }
 	FOnRaidCompleteDelegate& GetOnRaidCompleteDelegate() { return OnComplete; }
+	FOnRaidStateChanged& GetOnStateChanged() { return OnStateChanged; }
 
 	UFUNCTION(BlueprintCallable)
 	void GetParticipants(TArray<URaidParticipantComponent*>& OutArray) const { OutArray = Participants; }
 
 	UFUNCTION(BlueprintCallable)
 	void GetLivingParticipants(TArray<URaidParticipantComponent*>& OutArray) const;
+
+	UFUNCTION(BlueprintCallable)
+	void GetLivingInactiveParticipants(TArray<URaidParticipantComponent*>& OutArray) const;
 
 	UFUNCTION(BlueprintCallable)
 	URaidParticipantComponent* GetParticipant(int32 Index) const { return Participants[Index]; }
@@ -101,7 +109,10 @@ public:
 	URaidParticipantComponent* GetRandomParticipant() const;
 
 	UFUNCTION(BlueprintCallable)
-	void Join(AChatPlayer* Player, int32 Investment);
+	AChatPlayer* Join(TScriptInterface<IEpiUser> User, TSubclassOf<AChatPlayer> Class, int32 Amount);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void OnPlayerJoined(AChatPlayer* Player, int32 Amount);
 
 	float GetTimeBeforeNextRaid() const { return TimeBeforeNextRaid; }
 
@@ -113,18 +124,18 @@ public:
 	int64 ID;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int Investment;
+	int64 Investment;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int AverageInvestment;
+	int64 AverageInvestment;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	int MaxInvestment;
+	int64 MaxInvestment;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	int64 Winnings;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	ERaidState State;
 
 	UPROPERTY(EditDefaultsOnly, meta = (Category = "Raid"))
@@ -132,6 +143,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable)
 	FOnRaidCompleteDelegate OnComplete;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnRaidStateChanged OnStateChanged;
 
 	UPROPERTY()
 	TArray<URaidParticipantComponent*> Participants;

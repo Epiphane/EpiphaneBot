@@ -7,7 +7,7 @@
 #include "TwitchChatConnector.h"
 #include "RaidEvent.generated.h"
 
-DECLARE_DYNAMIC_DELEGATE(FOnRaidEventCompleteDelegate);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnRaidEventCompleteDelegate);
 
 class ARaid;
 
@@ -28,6 +28,11 @@ public:
 	bool CanRunEvent();
 
 	UFUNCTION(BlueprintNativeEvent)
+	int32 GetRarity();
+
+	bool IsEnabled() const { return bEnabled; }
+
+	UFUNCTION(BlueprintNativeEvent)
 	void RunEvent();
 
 	UFUNCTION(BlueprintCallable)
@@ -41,9 +46,12 @@ public:
 
 public:
 	UPROPERTY(EditDefaultsOnly)
-	int32 Rarity = 0;
+	bool bEnabled = true;
 
-	UPROPERTY(BlueprintReadWrite)
+	UPROPERTY(EditDefaultsOnly)
+	int32 DefaultRarity = 0;
+
+	UPROPERTY(BlueprintAssignable)
 	FOnRaidEventCompleteDelegate OnComplete;
 
 	UPROPERTY(BlueprintReadOnly)

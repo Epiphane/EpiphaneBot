@@ -87,14 +87,15 @@ bool UEpiUserDataSubsystem::EnsureUserTable()
 		return false;
 	}
 
-	return SqliteConnection->Execute(R"(CREATE TABLE IF NOT EXISTS "User" (
+	return SqliteConnection->Execute(R"X(CREATE TABLE IF NOT EXISTS "User" (
 		"Id"				INTEGER,
 		"Name"				TEXT UNIQUE NOT NULL,
 		"Caterium"			INTEGER DEFAULT 15,
 		"LockedCaterium"	INTEGER DEFAULT 0,
 		"Prestige"			INTEGER NOT NULL DEFAULT 0,
+		"Color"				TEXT NOT NULL DEFAULT "(R=255,G=255,B=255,A=255)",
 		PRIMARY KEY("Id")
-	))");
+	))X");
 }
 
 bool UEpiUserDataSubsystem::GetUserData(const FString& Properties, const uint32 ID, FEpiUserData& OutUserInfo)
@@ -146,12 +147,12 @@ bool UEpiUserDataSubsystem::Create(int32 ID, const FString& Name)
 
 bool UEpiUserDataSubsystem::GetUserData(const uint32 ID, FEpiUserData& OutUserInfo)
 {
-	return GetUserData(TEXT("Id, Name, Caterium, LockedCaterium, Prestige"), ID, OutUserInfo);
+	return GetUserData(TEXT("Id, Name, Color, Caterium, LockedCaterium, Prestige"), ID, OutUserInfo);
 }
 
 int32 UEpiUserDataSubsystem::GetIdForName(FString Name)
 {
-	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id FROM "User" WHERE Name = ?)"));
+	auto Select = USqliteConnection::PrepareSimple(TEXT(R"(SELECT Id FROM "User" WHERE Name = ? COLLATE NOCASE)"));
 	if (!Select.IsValid() ||
 		!Select.Bind(1, Name) ||
 		Select.Step() != ESqliteStepResult::Data)
@@ -175,6 +176,32 @@ FString UEpiUserDataSubsystem::GetNameForId(int32 ID)
 
 	TMap<FString, FSQLiteValue> Properties = Select.ReadRow();
 	return Properties["Name"].StringValue;
+}
+
+FLinearColor UEpiUserDataSubsystem::GetColor(int32 ID)
+{
+	FEpiUserData User;
+	if (!GetUserData(TEXT("Color"), ID, User))
+	{
+		return FLinearColor::White;
+	}
+
+	return User.Color;
+}
+
+void UEpiUserDataSubsystem::SetColor(int32 ID, FLinearColor Color)
+{
+	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "User" SET Color = ? WHERE Id = ?)"));
+	if (!Update.IsValid() ||
+		!Update.Bind(1, Color.ToString()) ||
+		!Update.Bind(2, ID) ||
+		Update.Step() != ESqliteStepResult::Done)
+	{
+		UE_LOG(LogEpiUserDataSubsystem, Error, TEXT("Failed setting color for user %d to %s"), ID, *Color.ToString());
+		return;
+	}
+
+	NotifyColorChanged(ID, Color);
 }
 
 int32 UEpiUserDataSubsystem::GetCaterium(int32 ID)
@@ -338,6 +365,11 @@ void UEpiUserDataSubsystem::SetPrestige(int32 ID, int32 Amount)
 	NotifyPrestigeChanged(ID, Amount);
 }
 
+void UEpiUserDataSubsystem::BindOnColorChanged(int32 ID, FColorChangedDelegate Callback)
+{
+	ColorChangedDelegates.FindOrAdd(ID).Add(Callback);
+}
+
 void UEpiUserDataSubsystem::BindOnCateriumChanged(int32 ID, FCateriumChangedDelegate Callback)
 {
 	CateriumChangedDelegates.FindOrAdd(ID).Add(Callback);
@@ -346,6 +378,14 @@ void UEpiUserDataSubsystem::BindOnCateriumChanged(int32 ID, FCateriumChangedDele
 void UEpiUserDataSubsystem::BindOnPrestigeChanged(int32 ID, FPrestigeChangedDelegate Callback)
 {
 	PrestigeChangedDelegates.FindOrAdd(ID).Add(Callback);
+}
+
+void UEpiUserDataSubsystem::NotifyColorChanged(int32 ID, FLinearColor NewValue)
+{
+	if (FColorChangedBroadcastDelegate* Broadcaster = ColorChangedDelegates.Find(ID))
+	{
+		Broadcaster->Broadcast(ID, NewValue);
+	}
 }
 
 void UEpiUserDataSubsystem::NotifyCateriumChanged(int32 ID, int32 NewValue)

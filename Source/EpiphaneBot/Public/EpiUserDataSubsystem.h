@@ -8,6 +8,9 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNewUserCreatedDelegate, int32, ID, FString, Name);
 
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FColorChangedDelegate, int32, ID, FLinearColor, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FColorChangedBroadcastDelegate, int32, ID, FLinearColor, NewValue);
+
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FCateriumChangedDelegate, int32, ID, int32, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCateriumChangedBroadcastDelegate, int32, ID, int32, NewValue);
 
@@ -24,6 +27,9 @@ struct EPIPHANEBOT_API FEpiUserData
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chat Player")
 	FString Name;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chat Player")
+	FLinearColor Color;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chat Player")
 	int32 Caterium = 15;
@@ -67,6 +73,14 @@ public:
 	
 	UFUNCTION(BlueprintPure)
 	FString GetNameForId(int32 ID);
+
+public:
+	// Caterium
+	UFUNCTION(BlueprintCallable)
+	FLinearColor GetColor(int32 ID);
+
+	UFUNCTION(BlueprintCallable)
+	void SetColor(int32 ID, FLinearColor Color);
 	
 public:
 	// Caterium
@@ -109,6 +123,9 @@ public:
 	FNewUserCreatedDelegate& GetUserCreatedEvent() { return NewUserCreatedEvent; }
 
 	UFUNCTION(BlueprintCallable)
+	void BindOnColorChanged(int32 ID, FColorChangedDelegate Callback);
+
+	UFUNCTION(BlueprintCallable)
 	void BindOnCateriumChanged(int32 ID, FCateriumChangedDelegate Callback);
 
 	UFUNCTION(BlueprintCallable)
@@ -119,11 +136,15 @@ private:
 	bool bInitialized = false;
 
 	// Internal Delegate Management
+	void NotifyColorChanged(int32 ID, FLinearColor NewValue);
 	void NotifyCateriumChanged(int32 ID, int32 NewValue);
 	void NotifyPrestigeChanged(int32 ID, int32 NewValue);
 
 	UPROPERTY(BlueprintAssignable)
 	FNewUserCreatedDelegate NewUserCreatedEvent;
+
+	UPROPERTY()
+	TMap<int32, FColorChangedBroadcastDelegate> ColorChangedDelegates;
 
 	UPROPERTY()
 	TMap<int32, FCateriumChangedBroadcastDelegate> CateriumChangedDelegates;

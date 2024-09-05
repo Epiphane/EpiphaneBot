@@ -16,8 +16,11 @@ class EPIPHANEBOT_API AChatPlayer : public AActor, public IEpiUser
 public:
 	AChatPlayer();
 
+	static AChatPlayer* Spawn(UObject* worldContextObject, TSubclassOf<AChatPlayer> Class, TScriptInterface<IEpiUser> Data);
+
 	virtual int32 GetID_Implementation() const override;
 	virtual FString GetUserName_Implementation() const override;
+	virtual FLinearColor GetUserColor_Implementation() const override;
 	virtual int32 GetCaterium_Implementation() const override;
 	virtual int32 GetPrestige_Implementation() const override;
 	virtual void AddCaterium_Implementation(int32 Caterium) override;

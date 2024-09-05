@@ -12,6 +12,8 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUserCateriumChangedDelegate, int32, NewCate
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUserCateriumChangedDelegate, int32, NewCaterium);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUserPrestigeChangedDelegate, int32, NewPrestige);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUserPrestigeChangedDelegate, int32, NewPrestige);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUserColorChangedDelegate, FLinearColor, NewColor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUserColorChangedDelegate, FLinearColor, NewColor);
 
 UINTERFACE(BlueprintType)
 class EPIPHANEBOT_API UEpiUser : public UInterface
@@ -38,6 +40,9 @@ public:
 	FString GetUserName() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	FLinearColor GetUserColor() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	int32 GetCaterium() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
@@ -57,6 +62,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void GiveCaterium(const TScriptInterface<IEpiUser>& Other, int32 Amount);
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void BindOnColorChanged(const FColorChangedDelegate& Callback);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void BindOnCateriumChanged(const FOnUserCateriumChangedDelegate& Callback);
@@ -94,7 +102,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Epi User", meta = (AutoCreateRefTerm = "Class", WorldContext = "WorldContextObject"))
 	static TScriptInterface<IEpiUser> Get(UObject* Outer, int64 Id, FString Name, UClass* Class);
 
-public:	
+public:
+	UFUNCTION()
+	void OnColorChanged(int32 ID, FLinearColor NewColor);
+
 	UFUNCTION()
 	void OnCateriumChanged(int32 ID, int32 NewCaterium);
 
@@ -102,6 +113,9 @@ public:
 	void OnPrestigeChanged(int32 ID, int32 NewPrestige);
 
 protected:
+	UPROPERTY(BlueprintAssignable)
+	FUserColorChangedDelegate OnColorChangedDelegate;
+
 	UPROPERTY(BlueprintAssignable)
 	FUserCateriumChangedDelegate OnCateriumChangedDelegate;
 

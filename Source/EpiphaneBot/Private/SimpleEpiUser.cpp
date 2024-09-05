@@ -3,7 +3,7 @@
 
 #include "SimpleEpiUser.h"
 
-USimpleEpiUser* USimpleEpiUser::Get(UObject* WorldContextObject, FString Name, int64 ID, bool CreateIfNotFound)
+USimpleEpiUser* USimpleEpiUser::Get(UObject* WorldContextObject, FString Name, int64 ID, FLinearColor InColor, bool CreateIfNotFound)
 {
 	USimpleEpiUser* User = NewObject<USimpleEpiUser>(WorldContextObject);
 	User->DataSource = WorldContextObject->GetWorld()->GetGameInstance()->GetSubsystem<UEpiUserDataSubsystem>();
@@ -17,6 +17,10 @@ USimpleEpiUser* USimpleEpiUser::Get(UObject* WorldContextObject, FString Name, i
 			}
 		}
 
+		if (InColor != FLinearColor::White)
+		{
+			User->DataSource->SetColor(ID, InColor);
+		}
 
 		if (User->DataSource->GetUserData(ID, User->Data))
 		{
@@ -26,6 +30,7 @@ USimpleEpiUser* USimpleEpiUser::Get(UObject* WorldContextObject, FString Name, i
 
 			BIND_PROPERTY_CHANGED(Caterium);
 			BIND_PROPERTY_CHANGED(Prestige);
+			BIND_PROPERTY_CHANGED(Color);
 
 #undef BIND_PROPERTY_CHANGED
 
@@ -44,18 +49,19 @@ USimpleEpiUser* USimpleEpiUser::GetUserFromName(UObject* WorldContextObject, FSt
 		return nullptr;
 	}
 
+	Name.RemoveFromStart(TEXT("@"));
 	int32 ID = DataSource->GetIdForName(Name);
 	if (ID == -1)
 	{
 		return nullptr;
 	}
 
-	return Get(WorldContextObject, Name, ID, false);
+	return Get(WorldContextObject, Name, ID, FLinearColor::White, false);
 }
 
 USimpleEpiUser* USimpleEpiUser::GetUserFromAuthor(UObject* WorldContextObject, FTwitchMessageAuthor Author, bool CreateIfNotFound)
 {
-	return Get(WorldContextObject, Author.Name, FCString::Atoi(*Author.UserId), CreateIfNotFound);
+	return Get(WorldContextObject, Author.Name, FCString::Atoi(*Author.UserId), Author.Color, CreateIfNotFound);
 }
 
 UChatAvatar* USimpleEpiUser::GetAvatar_Implementation() const
@@ -71,6 +77,11 @@ int32 USimpleEpiUser::GetID_Implementation() const
 FString USimpleEpiUser::GetUserName_Implementation() const
 {
 	return Data.Name;
+}
+
+FLinearColor USimpleEpiUser::GetUserColor_Implementation() const
+{
+	return Data.Color;
 }
 
 int32 USimpleEpiUser::GetCaterium_Implementation() const
@@ -110,13 +121,13 @@ void USimpleEpiUser::GiveCaterium_Implementation(const TScriptInterface<IEpiUser
 		return;
 	}
 
-	if (GetCaterium() < Amount)
+	if (Execute_GetCaterium(this) < Amount)
 	{
 		return;
 	}
 
-	AddCaterium(-Amount);
-	Other->AddCaterium(Amount);
+	Execute_AddCaterium(this, -Amount);
+	Other->Execute_AddCaterium(Other.GetObject(), Amount);
 }
 
 void USimpleEpiUser::BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback)
@@ -127,6 +138,12 @@ void USimpleEpiUser::BindOnCateriumChanged_Implementation(const FOnUserCateriumC
 void USimpleEpiUser::BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChangedDelegate& Callback)
 {
 	OnPrestigeChangedDelegate.Add(Callback);
+}
+
+void USimpleEpiUser::OnColorChanged(int32 ID, FLinearColor NewColor)
+{
+	Data.Color = NewColor;
+	OnColorChangedDelegate.Broadcast(NewColor);
 }
 
 void USimpleEpiUser::OnCateriumChanged(int32, int32 NewCaterium)

@@ -13,6 +13,7 @@ public class EpiphaneBot : ModuleRules
             "CoreUObject",
             "DesktopPlatform",
             "Engine",
+            "GameplayTags",
             "HTTP",
             "InputCore",
             "Paper2D",

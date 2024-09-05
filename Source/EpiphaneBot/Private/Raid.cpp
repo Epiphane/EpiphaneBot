@@ -29,6 +29,7 @@ ARaid::ARaid()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 	State = ERaidState::NotStarted;
+	OnStateChanged.Broadcast(State);
 
 }
 
@@ -68,10 +69,11 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, UTw
 		Id = IdValue->IntValue;
 	}
 
-	ARaid* RaidObject = worldContext->SpawnActor<ARaid>(RaidClass);
+	ARaid* RaidObject = worldContext->SpawnActorDeferred<ARaid>(RaidClass, FTransform::Identity);
 	check(RaidObject != nullptr);
 	RaidObject->ID = Id;
 	RaidObject->Chat = Chat;
+	RaidObject->FinishSpawning(FTransform::Identity);
 	if (!RaidObject->ReloadData())
 	{
 		RaidObject->Destroy();
@@ -85,6 +87,12 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, UTw
 void ARaid::BeginPlay()
 {
 	Super::BeginPlay();
+
+	ForEachComponent<URaidEvent>(false, [this](URaidEvent* Component) {
+		Component->Raid = this;
+		Component->Chat = Chat;
+		Component->OnComplete.AddDynamic(this, &ARaid::OnRaidEventComplete);
+	});
 }
 
 // Called every frame
@@ -96,11 +104,13 @@ void ARaid::Tick(float DeltaTime)
 void ARaid::BeginPreparing_Implementation()
 {
 	State = ERaidState::Preparing;
+	OnStateChanged.Broadcast(State);
 }
 
 void ARaid::BeginRaid_Implementation()
 {
 	State = ERaidState::Running;
+	ON_SCOPE_EXIT{ OnStateChanged.Broadcast(State); };
 	Investment = 0;
 	MaxInvestment = 0;
 	for (const auto& participant : Participants)
@@ -126,12 +136,14 @@ void ARaid::RunNextEvent()
 {
 	TArray<URaidEvent*> PossibleEvents;
 	GetComponents(PossibleEvents);
-	PossibleEvents = PossibleEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->CanRunEvent(); });
+	PossibleEvents = PossibleEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->IsEnabled() && Event->CanRunEvent(); });
 	int32 MaxRarity = 0;
 	int32 TotalWeight = 0;
 	for (const auto& Event : PossibleEvents)
 	{
-		MaxRarity = FMath::Max(MaxRarity, Event->Rarity);
+		int Rarity = Event->GetRarity();
+		if (Rarity <= 0) Rarity = Event->DefaultRarity;
+		MaxRarity = FMath::Max(MaxRarity, Rarity);
 	}
 
 	if (!ensure(PossibleEvents.Num() > 0))
@@ -142,7 +154,9 @@ void ARaid::RunNextEvent()
 	++MaxRarity;
 	for (const auto& Event : PossibleEvents)
 	{
-		TotalWeight += (MaxRarity - Event->Rarity);
+		int Rarity = Event->GetRarity();
+		if (Rarity <= 0) Rarity = Event->DefaultRarity;
+		TotalWeight += (MaxRarity - Rarity);
 	}
 
 	int32 Selection = FMath::RandHelper(TotalWeight);
@@ -150,7 +164,7 @@ void ARaid::RunNextEvent()
 	do
 	{
 		++SelectedIndex;
-		Selection -= (MaxRarity - PossibleEvents[SelectedIndex]->Rarity);
+		Selection -= (MaxRarity - PossibleEvents[SelectedIndex]->GetRarity());
 	} while (Selection >= 0);
 	PossibleEvents[SelectedIndex]->RunEvent();
 }
@@ -172,6 +186,7 @@ void ARaid::AddWinnings(int64 amount)
 void ARaid::Complete_Implementation()
 {
 	State = ERaidState::Done;
+	ON_SCOPE_EXIT{ OnStateChanged.Broadcast(State); };
 	
 	int64 LivingInvestment = 0;
 	for (URaidParticipantComponent* Participant : Participants)
@@ -180,6 +195,7 @@ void ARaid::Complete_Implementation()
 		if (Participant->IsAlive())
 		{
 			LivingInvestment += Participant->GetInvestment();
+			UE_LOG(LogTemp, Log, TEXT("Adding %d living investment from %s"), Participant->GetInvestment(), *Player->Execute_GetUserName(Player));
 		}
 		else
 		{
@@ -193,20 +209,23 @@ void ARaid::Complete_Implementation()
 		AChatPlayer* Player = CastChecked<AChatPlayer>(Participant->GetOwner());
 		if (Participant->IsAlive())
 		{
-			double Claim = (double)Participant->Investment / LivingInvestment;
+			double Claim = (double)Participant->GetInvestment() / LivingInvestment;
 			int64 PlayerWinnings = FMath::CeilToInt(Claim * Winnings);
 			Participant->SetWinnings(PlayerWinnings);
 			Player->Execute_UnlockCaterium(Player);
+			UE_LOG(LogTemp, Log, TEXT("Giving %d caterium to %s (claim = %f, investment = %f/%d"), PlayerWinnings, *Player->Execute_GetUserName(Player), Claim, Participant->GetInvestment(), Participant->GetInvestment());
 			Player->Execute_AddCaterium(Player, PlayerWinnings);
 		}
 		else
 		{
 			Player->Execute_ForefeitLockedCaterium(Player);
 		}
+
+		Participant->GetOwner()->SetLifeSpan(10.0f);
 	}
 
 	OnComplete.Broadcast(this);
-	Destroy();
+	SetLifeSpan(10.0f);
 }
 
 bool ARaid::IsInProgress() const
@@ -261,6 +280,14 @@ void ARaid::GetLivingParticipants(TArray<URaidParticipantComponent*>& OutArray) 
 	OutArray = Participants.FilterByPredicate(std::mem_fn(&URaidParticipantComponent::IsAlive));
 }
 
+void ARaid::GetLivingInactiveParticipants(TArray<URaidParticipantComponent*>& OutArray) const
+{
+	URaidParticipantComponent* Active = GetActiveParticipant();
+	OutArray = Participants.FilterByPredicate([Active](URaidParticipantComponent* Participant) {\
+		return Participant->IsAlive() && Participant != Active;
+	});
+}
+
 URaidParticipantComponent* ARaid::GetActiveParticipant_Implementation() const
 {
 	return GetRandomParticipant();
@@ -273,20 +300,29 @@ URaidParticipantComponent* ARaid::GetRandomParticipant() const
 	return LivingParticipants[FMath::RandHelper(LivingParticipants.Num())];
 }
 
-void ARaid::Join(AChatPlayer* Player, int32 investment)
+AChatPlayer* ARaid::Join(TScriptInterface<IEpiUser> User, TSubclassOf<AChatPlayer> Class, int32 Amount)
 {
 	if (!IsJoinable())
 	{
-		return;
+		return nullptr;
 	}
 
-	Investment += investment;
+	AChatPlayer* Player = AChatPlayer::Spawn(this, Class, User);
+
+	Investment += Amount;
 	URaidParticipantComponent* Participant = NewObject<URaidParticipantComponent>(Player, URaidParticipantComponent::StaticClass());
 	Participant->Raid = this;
-	Participant->Investment = investment;
+	Participant->Investment = Amount;
 	Participant->RegisterComponent();
 	Participants.Add(Participant);
 	ParticipantMap.Add(Player->GetID_Implementation(), Participant);
+	
+	OnPlayerJoined(Player, Amount);
+	return Player;
+}
+
+void ARaid::OnPlayerJoined_Implementation(AChatPlayer* Player, int32 Amount)
+{
 }
 
 bool ARaid::ReloadData()

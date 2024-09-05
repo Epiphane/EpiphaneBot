@@ -39,6 +39,7 @@ void UEpiUserObject::Initialize(int32 ID)
 
 		BIND_PROPERTY_CHANGED(Caterium);
 		BIND_PROPERTY_CHANGED(Prestige);
+		BIND_PROPERTY_CHANGED(Color);
 
 #undef BIND_PROPERTY_CHANGED
 	}
@@ -115,6 +116,12 @@ TScriptInterface<IEpiUser> UEpiUserObject::Get(UObject* Outer, int64 ID, FString
 	}
 
 	return nullptr;
+}
+
+void UEpiUserObject::OnColorChanged(int32 ID, FLinearColor NewColor)
+{
+	Data.Color = NewColor;
+	OnColorChangedDelegate.Broadcast(NewColor);
 }
 
 void UEpiUserObject::OnCateriumChanged(int32, int32 NewCaterium)

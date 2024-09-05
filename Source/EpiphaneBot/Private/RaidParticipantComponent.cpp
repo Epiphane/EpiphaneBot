@@ -128,3 +128,8 @@ void URaidParticipantComponent::SetWinnings(int32 NewWinnings)
 
 	Winnings = NewWinnings;
 }
+
+void URaidParticipantComponent::Kill()
+{
+	SetHealth(0);
+}
