@@ -6,6 +6,8 @@
 #include "Subsystems/EngineSubsystem.h"
 #include "EpiUserDataSubsystem.generated.h"
 
+class UChatAvatar;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNewUserCreatedDelegate, int32, ID, FString, Name);
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FColorChangedDelegate, int32, ID, FLinearColor, NewValue);
@@ -16,6 +18,9 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FCateriumChangedBroadcastDelegate, 
 
 DECLARE_DYNAMIC_DELEGATE_TwoParams(FPrestigeChangedDelegate, int32, ID, int32, NewValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FPrestigeChangedBroadcastDelegate, int32, ID, int32, NewValue);
+
+DECLARE_DYNAMIC_DELEGATE_TwoParams(FAvatarChangedDelegate, int32, ID, UChatAvatar*, NewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FAvatarChangedBroadcastDelegate, int32, ID, UChatAvatar*, NewValue);
 
 USTRUCT(BlueprintType)
 struct EPIPHANEBOT_API FEpiUserData
@@ -39,6 +44,9 @@ struct EPIPHANEBOT_API FEpiUserData
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chat Player")
 	int32 Prestige = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chat Player")
+	UChatAvatar* Avatar;
 };
 
 /**
@@ -75,12 +83,18 @@ public:
 	FString GetNameForId(int32 ID);
 
 public:
-	// Caterium
+	// Personalization
 	UFUNCTION(BlueprintCallable)
 	FLinearColor GetColor(int32 ID);
 
 	UFUNCTION(BlueprintCallable)
 	void SetColor(int32 ID, FLinearColor Color);
+
+	UFUNCTION(BlueprintCallable)
+	UChatAvatar* GetAvatar(int32 ID);
+
+	UFUNCTION(BlueprintCallable)
+	void SetAvatar(int32 ID, UChatAvatar* Avatar);
 	
 public:
 	// Caterium
@@ -131,6 +145,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void BindOnPrestigeChanged(int32 ID, FPrestigeChangedDelegate Callback);
 
+	UFUNCTION(BlueprintCallable)
+	void BindOnAvatarChanged(int32 ID, FAvatarChangedDelegate Callback);
+
 private:
 
 	bool bInitialized = false;
@@ -139,6 +156,7 @@ private:
 	void NotifyColorChanged(int32 ID, FLinearColor NewValue);
 	void NotifyCateriumChanged(int32 ID, int32 NewValue);
 	void NotifyPrestigeChanged(int32 ID, int32 NewValue);
+	void NotifyAvatarChanged(int32 ID, UChatAvatar* NewValue);
 
 	UPROPERTY(BlueprintAssignable)
 	FNewUserCreatedDelegate NewUserCreatedEvent;
@@ -148,6 +166,9 @@ private:
 
 	UPROPERTY()
 	TMap<int32, FCateriumChangedBroadcastDelegate> CateriumChangedDelegates;
+
+	UPROPERTY()
+	TMap<int32, FAvatarChangedBroadcastDelegate> AvatarChangedDelegates;
 
 	UPROPERTY(BlueprintAssignable)
 	FPrestigeChangedBroadcastDelegate PrestigeChangedEvent;

@@ -2,6 +2,7 @@
 
 
 #include "SimpleEpiUser.h"
+#include "EpiGameSettings.h"
 
 USimpleEpiUser* USimpleEpiUser::Get(UObject* WorldContextObject, FString Name, int64 ID, FLinearColor InColor, bool CreateIfNotFound)
 {
@@ -31,6 +32,7 @@ USimpleEpiUser* USimpleEpiUser::Get(UObject* WorldContextObject, FString Name, i
 			BIND_PROPERTY_CHANGED(Caterium);
 			BIND_PROPERTY_CHANGED(Prestige);
 			BIND_PROPERTY_CHANGED(Color);
+			BIND_PROPERTY_CHANGED(Avatar);
 
 #undef BIND_PROPERTY_CHANGED
 
@@ -66,7 +68,11 @@ USimpleEpiUser* USimpleEpiUser::GetUserFromAuthor(UObject* WorldContextObject, F
 
 UChatAvatar* USimpleEpiUser::GetAvatar_Implementation() const
 {
-	return Avatar;
+	if (!IsValid(Data.Avatar))
+	{
+		return GetDefault<UEpiGameSettings>()->DefaultAvatar.LoadSynchronous();
+	}
+	return Data.Avatar;
 }
 
 int32 USimpleEpiUser::GetID_Implementation() const
@@ -130,6 +136,11 @@ void USimpleEpiUser::GiveCaterium_Implementation(const TScriptInterface<IEpiUser
 	Other->Execute_AddCaterium(Other.GetObject(), Amount);
 }
 
+void USimpleEpiUser::SetAvatar_Implementation(UChatAvatar* NewAvatar) const
+{
+	return DataSource->SetAvatar(Data.ID, NewAvatar);
+}
+
 void USimpleEpiUser::BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback)
 {
 	OnCateriumChangedDelegate.Add(Callback);
@@ -138,6 +149,11 @@ void USimpleEpiUser::BindOnCateriumChanged_Implementation(const FOnUserCateriumC
 void USimpleEpiUser::BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChangedDelegate& Callback)
 {
 	OnPrestigeChangedDelegate.Add(Callback);
+}
+
+void USimpleEpiUser::BindOnAvatarChanged_Implementation(const FOnUserAvatarChangedDelegate& Callback)
+{
+	OnAvatarChangedDelegate.Add(Callback);
 }
 
 void USimpleEpiUser::OnColorChanged(int32 ID, FLinearColor NewColor)
@@ -156,4 +172,10 @@ void USimpleEpiUser::OnPrestigeChanged(int32, int32 NewPrestige)
 {
 	Data.Prestige = NewPrestige;
 	OnPrestigeChangedDelegate.Broadcast(NewPrestige);
+}
+
+void USimpleEpiUser::OnAvatarChanged(int32 ID, UChatAvatar* NewAvatar)
+{
+	Data.Avatar = NewAvatar;
+	OnAvatarChangedDelegate.Broadcast(NewAvatar);
 }

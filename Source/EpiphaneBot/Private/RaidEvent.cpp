@@ -4,16 +4,9 @@
 #include "TwitchPluginBPLibrary.h"
 #include "Raid.h"
 
-// Sets default values
-URaidEvent::URaidEvent()
+void URaidEvent::SetRaid(ARaid* InRaid)
 {
-}
-
-void URaidEvent::BeginPlay()
-{
-    Super::BeginPlay();
-
-    Raid = GetOwner<ARaid>();
+    Raid = InRaid;
 }
 
 int32 URaidEvent::GetRarity_Implementation()

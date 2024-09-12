@@ -2,6 +2,8 @@
 
 
 #include "EpiUserDataSubsystem.h"
+#include "ChatAvatar.h"
+#include "EpiGameSettings.h"
 #include "SqliteConnection.h"
 #include "ApplicationSettings.h"
 
@@ -94,6 +96,7 @@ bool UEpiUserDataSubsystem::EnsureUserTable()
 		"LockedCaterium"	INTEGER DEFAULT 0,
 		"Prestige"			INTEGER NOT NULL DEFAULT 0,
 		"Color"				TEXT NOT NULL DEFAULT "(R=255,G=255,B=255,A=255)",
+		"Avatar"			TEXT,
 		PRIMARY KEY("Id")
 	))X");
 }
@@ -147,7 +150,7 @@ bool UEpiUserDataSubsystem::Create(int32 ID, const FString& Name)
 
 bool UEpiUserDataSubsystem::GetUserData(const uint32 ID, FEpiUserData& OutUserInfo)
 {
-	return GetUserData(TEXT("Id, Name, Color, Caterium, LockedCaterium, Prestige"), ID, OutUserInfo);
+	return GetUserData(TEXT("Id, Name, Color, Caterium, LockedCaterium, Prestige, Avatar"), ID, OutUserInfo);
 }
 
 int32 UEpiUserDataSubsystem::GetIdForName(FString Name)
@@ -202,6 +205,33 @@ void UEpiUserDataSubsystem::SetColor(int32 ID, FLinearColor Color)
 	}
 
 	NotifyColorChanged(ID, Color);
+}
+
+UChatAvatar* UEpiUserDataSubsystem::GetAvatar(int32 ID)
+{
+	FEpiUserData User;
+	if (!GetUserData(TEXT("Avatar"), ID, User))
+	{
+		return GetDefault<UEpiGameSettings>()->DefaultAvatar.LoadSynchronous();
+	}
+
+	return User.Avatar;
+}
+
+void UEpiUserDataSubsystem::SetAvatar(int32 ID, UChatAvatar* Avatar)
+{
+	FString AvatarPath = Avatar->GetPathName();
+	auto Update = USqliteConnection::PrepareSimple(TEXT(R"(UPDATE "User" SET Avatar = ? WHERE Id = ?)"));
+	if (!Update.IsValid() ||
+		!Update.Bind(1, AvatarPath) ||
+		!Update.Bind(2, ID) ||
+		Update.Step() != ESqliteStepResult::Done)
+	{
+		UE_LOG(LogEpiUserDataSubsystem, Error, TEXT("Failed setting avatar for user %d to %s"), ID, *AvatarPath);
+		return;
+	}
+
+	NotifyAvatarChanged(ID, Avatar);
 }
 
 int32 UEpiUserDataSubsystem::GetCaterium(int32 ID)
@@ -380,6 +410,11 @@ void UEpiUserDataSubsystem::BindOnPrestigeChanged(int32 ID, FPrestigeChangedDele
 	PrestigeChangedDelegates.FindOrAdd(ID).Add(Callback);
 }
 
+void UEpiUserDataSubsystem::BindOnAvatarChanged(int32 ID, FAvatarChangedDelegate Callback)
+{
+	AvatarChangedDelegates.FindOrAdd(ID).Add(Callback);
+}
+
 void UEpiUserDataSubsystem::NotifyColorChanged(int32 ID, FLinearColor NewValue)
 {
 	if (FColorChangedBroadcastDelegate* Broadcaster = ColorChangedDelegates.Find(ID))
@@ -394,6 +429,14 @@ void UEpiUserDataSubsystem::NotifyCateriumChanged(int32 ID, int32 NewValue)
     {
         Broadcaster->Broadcast(ID, NewValue);
     }
+}
+
+void UEpiUserDataSubsystem::NotifyAvatarChanged(int32 ID, UChatAvatar* NewValue)
+{
+	if (FAvatarChangedBroadcastDelegate* Broadcaster = AvatarChangedDelegates.Find(ID))
+	{
+		Broadcaster->Broadcast(ID, NewValue);
+	}
 }
 
 void UEpiUserDataSubsystem::NotifyPrestigeChanged(int32 ID, int32 NewValue)

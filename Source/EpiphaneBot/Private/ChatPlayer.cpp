@@ -2,6 +2,7 @@
 
 #include "ChatPlayer.h"
 #include "EpiGameInstance.h"
+#include "EpiGameSettings.h"
 #include "Kismet/GameplayStatics.h"
 
 AChatPlayer::AChatPlayer()
@@ -47,6 +48,12 @@ int32 AChatPlayer::GetPrestige_Implementation() const
 	return User->Execute_GetPrestige(User.GetObject());
 }
 
+UChatAvatar* AChatPlayer::GetAvatar_Implementation() const
+{
+	if (!User) return GetDefault<UEpiGameSettings>()->DefaultAvatar.LoadSynchronous();
+	return User->Execute_GetAvatar(User.GetObject());
+}
+
 void AChatPlayer::AddCaterium_Implementation(int32 Delta)
 {
 	if (!User) return;
@@ -77,6 +84,12 @@ void AChatPlayer::GiveCaterium_Implementation(const TScriptInterface<IEpiUser>& 
 	return User->Execute_GiveCaterium(User.GetObject(), Other, Amount);
 }
 
+void AChatPlayer::SetAvatar_Implementation(UChatAvatar* NewAvatar) const
+{
+	if (!User) return;
+	return User->Execute_SetAvatar(User.GetObject(), NewAvatar);
+}
+
 void AChatPlayer::BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback)
 {
 	if (!User) return;
@@ -87,4 +100,10 @@ void AChatPlayer::BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChan
 {
 	if (!User) return;
 	return User->Execute_BindOnPrestigeChanged(User.GetObject(), Callback);
+}
+
+void AChatPlayer::BindOnAvatarChanged_Implementation(const FOnUserAvatarChangedDelegate& Callback)
+{
+	if (!User) return;
+	return User->Execute_BindOnAvatarChanged(User.GetObject(), Callback);
 }

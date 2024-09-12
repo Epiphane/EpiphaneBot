@@ -14,6 +14,8 @@ DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUserPrestigeChangedDelegate, int32, NewPres
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUserPrestigeChangedDelegate, int32, NewPrestige);
 DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUserColorChangedDelegate, FLinearColor, NewColor);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUserColorChangedDelegate, FLinearColor, NewColor);
+DECLARE_DYNAMIC_DELEGATE_OneParam(FOnUserAvatarChangedDelegate, UChatAvatar*, NewAvatar);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUserAvatarChangedDelegate, UChatAvatar*, NewAvatar);
 
 UINTERFACE(BlueprintType)
 class EPIPHANEBOT_API UEpiUser : public UInterface
@@ -64,6 +66,12 @@ public:
 	void GiveCaterium(const TScriptInterface<IEpiUser>& Other, int32 Amount);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	UChatAvatar* GetAvatar() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
+	void SetAvatar(UChatAvatar* NewAvatar) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void BindOnColorChanged(const FColorChangedDelegate& Callback);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
@@ -73,7 +81,7 @@ public:
 	void BindOnPrestigeChanged(const FOnUserPrestigeChangedDelegate& Callback);
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
-	UChatAvatar* GetAvatar() const;
+	void BindOnAvatarChanged(const FOnUserAvatarChangedDelegate& Callback);
 
 protected:
 	FEpiUserData Data;
@@ -107,6 +115,9 @@ public:
 	void OnColorChanged(int32 ID, FLinearColor NewColor);
 
 	UFUNCTION()
+	void OnAvatarChanged(int32 ID, UChatAvatar* NewAvatar);
+
+	UFUNCTION()
 	void OnCateriumChanged(int32 ID, int32 NewCaterium);
 
 	UFUNCTION()
@@ -115,6 +126,9 @@ public:
 protected:
 	UPROPERTY(BlueprintAssignable)
 	FUserColorChangedDelegate OnColorChangedDelegate;
+
+	UPROPERTY(BlueprintAssignable)
+	FUserAvatarChangedDelegate OnAvatarChangedDelegate;
 
 	UPROPERTY(BlueprintAssignable)
 	FUserCateriumChangedDelegate OnCateriumChangedDelegate;

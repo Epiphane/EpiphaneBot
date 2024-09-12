@@ -34,8 +34,10 @@ public:
 	virtual void UnlockCaterium_Implementation() override;
 	virtual void ForefeitLockedCaterium_Implementation() override;
 	virtual void GiveCaterium_Implementation(const TScriptInterface<IEpiUser>& Other, int32 Amount) override;
+	virtual void SetAvatar_Implementation(UChatAvatar* NewAvatar) const override;
 	virtual void BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback) override;
 	virtual void BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChangedDelegate& Callback) override;
+	virtual void BindOnAvatarChanged_Implementation(const FOnUserAvatarChangedDelegate& Callback) override;
 
 public:
 	UFUNCTION()
@@ -47,6 +49,9 @@ public:
 	UFUNCTION()
 	void OnPrestigeChanged(int32 ID, int32 NewPrestige);
 
+	UFUNCTION()
+	void OnAvatarChanged(int32 ID, UChatAvatar* NewAvatar);
+
 protected:
 	UPROPERTY(BlueprintAssignable)
 	FUserCateriumChangedDelegate OnCateriumChangedDelegate;
@@ -57,10 +62,10 @@ protected:
 	UPROPERTY(BlueprintAssignable)
 	FUserColorChangedDelegate OnColorChangedDelegate;
 
-private:
-	UPROPERTY(EditDefaultsOnly)
-	UChatAvatar* Avatar;
+	UPROPERTY(BlueprintAssignable)
+	FUserAvatarChangedDelegate OnAvatarChangedDelegate;
 
+private:
 	UPROPERTY()
 	FEpiUserData Data;
 

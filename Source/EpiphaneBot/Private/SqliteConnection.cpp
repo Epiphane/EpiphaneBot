@@ -189,6 +189,14 @@ bool FSqliteStatement::AssignNextRowToObject(const UStruct* Class, void* Object)
 				Color.InitFromString(value.StringValue);
 				targetProperty->SetValue_InContainer(Object, &Color);
 			}
+			else if (FObjectProperty* objProp = CastField<FObjectProperty>(targetProperty))
+			{
+				if (!value.StringValue.IsEmpty())
+				{
+					FStringAssetReference Reference(value.StringValue);
+					objProp->SetPropertyValue_InContainer(Object, Reference.TryLoad());
+				}
+			}
 			else if (FStrProperty* strProp = CastField<FStrProperty>(targetProperty))
 			{
 				strProp->SetPropertyValue_InContainer(Object, value.StringValue);

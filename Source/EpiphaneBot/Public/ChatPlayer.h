@@ -23,13 +23,16 @@ public:
 	virtual FLinearColor GetUserColor_Implementation() const override;
 	virtual int32 GetCaterium_Implementation() const override;
 	virtual int32 GetPrestige_Implementation() const override;
+	virtual UChatAvatar* GetAvatar_Implementation() const override;
 	virtual void AddCaterium_Implementation(int32 Caterium) override;
 	virtual void LockCaterium_Implementation(int32 Amount) override;
 	virtual void UnlockCaterium_Implementation() override;
 	virtual void ForefeitLockedCaterium_Implementation() override;
 	virtual void GiveCaterium_Implementation(const TScriptInterface<IEpiUser>& Other, int32 Amount) override;
+	virtual void SetAvatar_Implementation(UChatAvatar* NewAvatar) const override;
 	virtual void BindOnCateriumChanged_Implementation(const FOnUserCateriumChangedDelegate& Callback) override;
 	virtual void BindOnPrestigeChanged_Implementation(const FOnUserPrestigeChangedDelegate& Callback) override;
+	virtual void BindOnAvatarChanged_Implementation(const FOnUserAvatarChangedDelegate& Callback) override;
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)

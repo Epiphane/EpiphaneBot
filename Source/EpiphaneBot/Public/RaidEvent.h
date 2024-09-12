@@ -17,18 +17,13 @@ class EPIPHANEBOT_API URaidEvent : public UActorComponent
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
-	URaidEvent();
-
-	virtual void BeginPlay() override;
-
-public:
-
-	UFUNCTION(BlueprintNativeEvent)
-	bool CanRunEvent();
+	void SetRaid(ARaid* Raid);
 
 	UFUNCTION(BlueprintNativeEvent)
 	int32 GetRarity();
+
+	UFUNCTION(BlueprintNativeEvent)
+	bool CanRunEvent();
 
 	bool IsEnabled() const { return bEnabled; }
 
@@ -50,6 +45,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly)
 	int32 DefaultRarity = 0;
+
+	UPROPERTY(BlueprintReadWrite)
+	int32 Rarity = 0;
 
 	UPROPERTY(BlueprintAssignable)
 	FOnRaidEventCompleteDelegate OnComplete;

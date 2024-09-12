@@ -124,6 +124,12 @@ void UEpiUserObject::OnColorChanged(int32 ID, FLinearColor NewColor)
 	OnColorChangedDelegate.Broadcast(NewColor);
 }
 
+void UEpiUserObject::OnAvatarChanged(int32 ID, UChatAvatar* NewAvatar)
+{
+	Data.Avatar = NewAvatar;
+	OnAvatarChangedDelegate.Broadcast(NewAvatar);
+}
+
 void UEpiUserObject::OnCateriumChanged(int32, int32 NewCaterium)
 {
 	Data.Caterium = NewCaterium;

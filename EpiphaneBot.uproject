@@ -11,7 +11,8 @@
 			"AdditionalDependencies": [
 				"Engine",
 				"CoreUObject",
-				"TwitchApi"
+				"TwitchApi",
+				"DeveloperSettings"
 			]
 		},
 		{

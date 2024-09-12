@@ -5,7 +5,9 @@
 #include "CoreMinimal.h"
 #include "ChatPlayer.h"
 #include "RaidEvent.h"
+#include "Engine/DataTable.h"
 #include "GameFramework/Actor.h"
+#include "GameplayTagContainer.h"
 #include "RaidParticipantComponent.h"
 #include "Raid.generated.h"
 
@@ -34,6 +36,25 @@ enum class EJoinableOutput :uint8
 	RaidNotJoinable,
 };
 
+/** Please add a struct description */
+USTRUCT(BlueprintType)
+struct FRaidEventRowStruct : public FTableRowBase
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (DisplayName = "Event", MakeStructureDefaultValue = "None"))
+	TSubclassOf<URaidEvent> EventClass;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (DisplayName = "Enabled", MakeStructureDefaultValue = "false"))
+	bool bEnabled = true;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (DisplayName = "Rarity", MakeStructureDefaultValue = "0"))
+	int32 Rarity;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, meta = (DisplayName = "RequiredRaidTags"))
+	FGameplayTagContainer RequiredRaidTags;
+};
+
 UCLASS()
 class EPIPHANEBOT_API ARaid : public AActor
 {
@@ -59,6 +80,9 @@ public:
 
 	UFUNCTION(BlueprintNativeEvent)
 	void BeginPreparing();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void InitEventInstances();
 
 	UFUNCTION(BlueprintCallable, BlueprintNativeEvent)
 	void BeginRaid();
@@ -117,6 +141,9 @@ public:
 	float GetTimeBeforeNextRaid() const { return TimeBeforeNextRaid; }
 
 private:
+	UFUNCTION(BlueprintCallable)
+	void AddEventInstance(TSubclassOf<URaidEvent> EventClass);
+
 	bool ReloadData();
 
 public:
@@ -155,4 +182,13 @@ public:
 
 	UPROPERTY(BlueprintReadOnly)
 	UTwitchChatConnector* Chat;
+
+	UPROPERTY(BlueprintReadWrite)
+	FGameplayTagContainer RaidTags;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly)
+	UDataTable* EventDataTable;
+
+	UPROPERTY()
+	TArray<URaidEvent*> EventInstances;
 };

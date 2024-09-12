@@ -24,4 +24,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UTexture2D* SmallImage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	bool bColorable = true;
 };

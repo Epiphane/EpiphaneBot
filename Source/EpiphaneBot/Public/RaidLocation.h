@@ -25,9 +25,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TArray<UTexture2D*> Images;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	FGameplayTag LocationType;
+	//UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	//FGameplayTag LocationType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	TSet<FGameplayTag> LocationTags;
+	FGameplayTagContainer LocationTags;
 };

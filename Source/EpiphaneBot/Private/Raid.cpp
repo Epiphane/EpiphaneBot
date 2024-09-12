@@ -87,18 +87,31 @@ ARaid* ARaid::CreateRaid(UWorld* worldContext, TSubclassOf<ARaid> RaidClass, UTw
 void ARaid::BeginPlay()
 {
 	Super::BeginPlay();
-
-	ForEachComponent<URaidEvent>(false, [this](URaidEvent* Component) {
-		Component->Raid = this;
-		Component->Chat = Chat;
-		Component->OnComplete.AddDynamic(this, &ARaid::OnRaidEventComplete);
-	});
 }
 
 // Called every frame
 void ARaid::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+void ARaid::InitEventInstances_Implementation()
+{
+	if (!ensure(EventDataTable))
+		return;
+
+	TArray<FRaidEventRowStruct*> EventRows;
+	EventDataTable->GetAllRows(TEXT("Raid"), EventRows);
+
+	for (const FRaidEventRowStruct* Row : EventRows)
+	{
+		if (!Row) continue;
+
+		if (Row->bEnabled && RaidTags.HasAll(Row->RequiredRaidTags))
+		{
+			AddEventInstance(Row->EventClass);
+		}
+	}
 }
 
 void ARaid::BeginPreparing_Implementation()
@@ -109,6 +122,8 @@ void ARaid::BeginPreparing_Implementation()
 
 void ARaid::BeginRaid_Implementation()
 {
+	InitEventInstances();
+
 	State = ERaidState::Running;
 	ON_SCOPE_EXIT{ OnStateChanged.Broadcast(State); };
 	Investment = 0;
@@ -134,9 +149,7 @@ void ARaid::BeginRaid_Implementation()
 
 void ARaid::RunNextEvent()
 {
-	TArray<URaidEvent*> PossibleEvents;
-	GetComponents(PossibleEvents);
-	PossibleEvents = PossibleEvents.FilterByPredicate([this](URaidEvent* Event) { return Event->IsEnabled() && Event->CanRunEvent(); });
+	TArray<URaidEvent*> PossibleEvents = EventInstances.FilterByPredicate([this](URaidEvent* Event) { return Event->IsEnabled() && Event->CanRunEvent(); });
 	int32 MaxRarity = 0;
 	int32 TotalWeight = 0;
 	for (const auto& Event : PossibleEvents)
@@ -323,6 +336,17 @@ AChatPlayer* ARaid::Join(TScriptInterface<IEpiUser> User, TSubclassOf<AChatPlaye
 
 void ARaid::OnPlayerJoined_Implementation(AChatPlayer* Player, int32 Amount)
 {
+}
+
+void ARaid::AddEventInstance(TSubclassOf<URaidEvent> EventClass)
+{
+	if (!ensure(EventClass)) return;
+
+	URaidEvent* Event = NewObject<URaidEvent>(this, EventClass);
+	Event->Raid = this;
+	Event->Chat = Chat;
+	Event->OnComplete.AddDynamic(this, &ARaid::OnRaidEventComplete);
+	EventInstances.Add(Event);
 }
 
 bool ARaid::ReloadData()
